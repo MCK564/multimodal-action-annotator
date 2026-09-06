@@ -1,0 +1,18 @@
+video_id,track_id,role,start_seconds,end_seconds,category,action_label,confidence,notes
+video_20260903_144352,1,lecturer,5.0,18.5,locomotion,walking,1.0,Di chuyển từ trái sang phải
+video_20260903_144352,1,lecturer,10.0,16.5,teaching_gesture,pointing_board,0.95,Chỉ tay về phía nội dung trên bảng
+video_20260903_144352,1,lecturer,5.0,18.5,posture_stance,facing_students,1.0,Hướng nhìn về phía sinh viên
+video_20260903_144352,1,lecturer,18.5,45.0,locomotion,stationary,1.0,Đứng yên giảng bài
+video_20260903_144352,1,lecturer,22.0,30.0,teaching_gesture,illustrative_gesture,0.9,Mô tả khái niệm bằng hai tay
+video_20260903_144352,1,lecturer,50.0,75.0,board_interaction,writing_board,1.0,Viết công thức lên bảng
+video_20260903_144352,1,lecturer,50.0,75.0,teaching_gesture,holding_marker,1.0,Tay cầm bút dạ viết bảng
+video_20260903_145909,1,lecturer,2.0,25.0,locomotion,stationary,1.0,Mở đầu bài giảng
+video_20260903_145909,1,lecturer,2.0,25.0,teaching_gesture,holding_mouse_clicker,1.0,Cầm clicker chuyển slide
+video_20260903_145909,1,lecturer,2.0,25.0,posture_stance,facing_front_left_45,1.0,Đứng nghiêng 45 độ về phía màn hình chiếu
+video_20260903_150001,1,lecturer,0.0,15.0,locomotion,stationary,1.0,Bắt đầu phần tổng kết
+video_20260903_150001,1,lecturer,0.0,15.0,posture_stance,facing_back_180,1.0,Quay lưng 180 độ chỉ vào sơ đồ trên bảng
+video_20260903_144352,1,lecturer,5.0,18.5,teaching_gesture,arm_swing_walking,1.0,Vung tay tự nhiên theo bước đi
+video_20260903_144352,1,lecturer,25.0,32.0,teaching_gesture,contracted_hand,0.95,Co bàn tay / nắm nhẹ khi nhấn mạnh luận điểm
+video_20260903_145909,1,lecturer,35.0,42.0,teaching_gesture,hand_towards_camera,1.0,Đưa bàn tay ra phía trước hướng về sinh viên/camera
+
+

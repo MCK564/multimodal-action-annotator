@@ -1,0 +1,2966 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task 3 Multimodal Action Annotator - Đánh Nhãn Hành Vi Đa Tầng</title>
+  <style>
+    :root {
+      --bg: #1e1e2e;
+      --panel: #252538;
+      --panel-hover: #2e2e46;
+      --border: #383850;
+      --border-light: #45475a;
+      --text: #cdd6f4;
+      --text-muted: #a6adc8;
+      --accent: #89b4fa;
+      --accent-hover: #b4befe;
+      --danger: #f38ba8;
+      --success: #a6e3a1;
+      --warning: #f9e2af;
+      --info: #89dceb;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 7px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      gap: 12px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    header h1 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.3px;
+    }
+    .btn-group {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    button, .btn {
+      background: #313244;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.12s, border-color 0.12s;
+      white-space: nowrap;
+      user-select: none;
+    }
+    button:hover, .btn:hover {
+      background: #45475a;
+      border-color: #585b70;
+    }
+    button.primary {
+      background: var(--accent);
+      color: #11111b;
+      border: none;
+      font-weight: 600;
+    }
+    button.primary:hover {
+      background: var(--accent-hover);
+    }
+    button.success {
+      background: #a6e3a1;
+      color: #11111b;
+      border: none;
+      font-weight: 600;
+    }
+    button.danger {
+      background: var(--danger);
+      color: #11111b;
+      border: none;
+      font-weight: 600;
+    }
+    button.danger:hover {
+      background: #eba0ac;
+    }
+    button.sm {
+      padding: 3px 8px;
+      font-size: 11px;
+      border-radius: 4px;
+    }
+    button.icon-btn {
+      padding: 4px 7px;
+      font-size: 13px;
+    }
+
+    /* Workspace Layout */
+    .main-workspace {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .video-pane {
+      flex: 1.25;
+      background: #11111b;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 8px 12px;
+      min-width: 0;
+    }
+    video {
+      max-width: 100%;
+      max-height: calc(100% - 46px);
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      background: #000;
+    }
+    .video-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .time-display {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      color: var(--accent);
+      font-weight: 700;
+      background: #181825;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      min-width: 155px;
+      text-align: center;
+    }
+    .volume-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #181825;
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    .volume-box input[type=range] {
+      width: 60px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* Side Pane */
+    .side-pane {
+      width: 410px;
+      background: var(--panel);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .side-pane h2 {
+      font-size: 13px;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--accent);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .pass-focus-container {
+      padding: 8px 14px;
+      background: #181825;
+      border-bottom: 1px solid var(--border);
+    }
+    .pass-focus-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .pass-focus-header label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.4px;
+    }
+    .modality-filters {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .modality-filter-btn {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: #252538;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .modality-filter-btn.active {
+      background: var(--accent);
+      color: #11111b;
+      font-weight: 700;
+      border-color: var(--accent);
+    }
+    .pass-chips-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+    .pass-chip {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #1e1e2e;
+      color: var(--text);
+      transition: background 0.12s;
+    }
+    .pass-chip:hover {
+      background: #313244;
+    }
+    .pass-chip.active {
+      font-weight: 700;
+      box-shadow: 0 0 6px rgba(137, 180, 250, 0.4);
+    }
+
+    /* Annotation Form */
+    .annotation-form {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      max-height: 330px;
+    }
+    .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .form-row label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .form-row select, .form-row input[type=text], .form-row input[type=number] {
+      background: #181825;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      outline: none;
+    }
+    .form-row select:focus, .form-row input:focus {
+      border-color: var(--accent);
+    }
+    .category-select-wrapper {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .category-select-wrapper select {
+      flex: 1;
+    }
+    .time-inputs {
+      display: flex;
+      gap: 8px;
+    }
+    .time-inputs > div { flex: 1; }
+    .time-row-inner {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .time-row-inner input {
+      flex: 1;
+      width: 60px;
+    }
+
+    .action-chips-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      max-height: 110px;
+      overflow-y: auto;
+      padding: 4px;
+      background: #181825;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+    .action-chip-btn {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: #252538;
+      border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.12s;
+    }
+    .action-chip-btn:hover {
+      background: #313244;
+      border-color: var(--accent);
+    }
+    .action-chip-btn.selected {
+      background: var(--accent);
+      color: #11111b;
+      font-weight: 700;
+      border-color: var(--accent);
+      box-shadow: 0 0 6px rgba(137, 180, 250, 0.4);
+    }
+
+    .selected-preview {
+      min-height: 28px;
+      background: #11111b;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+    }
+    .selected-tag {
+      background: #313244;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 1px 7px;
+      font-size: 11px;
+      color: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .selected-tag .remove-btn {
+      color: var(--danger);
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    /* Annotation List */
+    .annotation-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 12px;
+      min-height: 0;
+    }
+    .ann-card {
+      background: #181825;
+      border-left: 4px solid var(--accent);
+      border-radius: 5px;
+      padding: 7px 10px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .ann-card:hover {
+      background: #2b2b3f;
+    }
+    .ann-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .ann-info-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+    .ann-cat-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .ann-actions-text {
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ann-time-text {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .ann-note-text {
+      font-size: 11px;
+      color: #bac2de;
+      margin-top: 2px;
+      font-style: italic;
+    }
+    .ann-del {
+      color: var(--danger);
+      cursor: pointer;
+      padding: 4px 6px;
+      font-size: 15px;
+      border-radius: 4px;
+      margin-left: 6px;
+      transition: background 0.12s;
+    }
+    .ann-del:hover {
+      background: rgba(243, 139, 168, 0.2);
+    }
+
+    /* Timeline Section (Hardware Accelerated & Virtualized Canvas Ruler) */
+    .timeline-container {
+      height: 230px;
+      background: #181825;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .timeline-header {
+      height: 28px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 11px;
+      color: var(--text-muted);
+      background: #1e1e2e;
+      flex-shrink: 0;
+    }
+    .timeline-zoom-controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .tracks-wrapper {
+      flex: 1;
+      overflow-x: auto;
+      overflow-y: auto;
+      position: relative;
+    }
+    .tracks-content {
+      position: relative;
+      min-width: 1000px;
+      padding-bottom: 10px;
+    }
+    .time-ruler-canvas-wrap {
+      height: 22px;
+      background: #11111b;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    #timeRulerCanvas {
+      display: block;
+      height: 22px;
+    }
+    .track-lane {
+      height: 36px;
+      border-bottom: 1px solid #28283d;
+      position: relative;
+      display: flex;
+      align-items: center;
+      cursor: crosshair;
+    }
+    .track-lane:hover {
+      background: rgba(255,255,255,0.02);
+    }
+    .track-lane.dimmed {
+      opacity: 0.3;
+    }
+    .track-lane.focused {
+      background: rgba(137, 180, 250, 0.05);
+    }
+    .lane-label {
+      position: sticky;
+      left: 0;
+      z-index: 10;
+      background: rgba(24, 24, 37, 0.92);
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 4px;
+      backdrop-filter: blur(4px);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid rgba(255,255,255,0.08);
+      cursor: pointer;
+      user-select: none;
+    }
+    .lane-label:hover {
+      background: #313244;
+    }
+    .lane-selection-ghost {
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      background: rgba(137, 180, 250, 0.35);
+      border: 1px dashed var(--accent);
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 15;
+    }
+    .action-block {
+      position: absolute;
+      height: 26px;
+      top: 5px;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #11111b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      z-index: 5;
+    }
+    .action-block:active { cursor: grabbing; }
+    .action-block .handle {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 6px;
+      cursor: ew-resize;
+      background: rgba(0,0,0,0.15);
+    }
+    .action-block .handle:hover {
+      background: rgba(0,0,0,0.4);
+    }
+    .action-block .handle.left { left: 0; }
+    .action-block .handle.right { right: 0; }
+
+    /* GPU-accelerated playhead (translate3d) */
+    .playhead {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 2px;
+      background: #f5e0dc;
+      z-index: 25;
+      pointer-events: none;
+      transform: translate3d(0, 0, 0);
+      will-change: transform;
+    }
+    .playhead::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -5px;
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 8px solid #f5e0dc;
+    }
+
+    /* Modal Overlay & Card */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      width: 900px;
+      max-width: 96vw;
+      height: 82vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      overflow: hidden;
+    }
+    .modal-header {
+      background: var(--panel);
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 2px 6px;
+    }
+    .modal-close-btn:hover {
+      color: #fff;
+    }
+    .modal-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .modal-sidebar {
+      width: 320px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      gap: 10px;
+      overflow-y: auto;
+    }
+    .modal-cat-item {
+      padding: 8px 10px;
+      background: #181825;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background 0.12s;
+    }
+    .modal-cat-item:hover {
+      background: #313244;
+    }
+    .modal-cat-item.active {
+      border-color: var(--accent);
+      background: #313244;
+      box-shadow: 0 0 8px rgba(137, 180, 250, 0.2);
+    }
+    .modal-cat-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .modal-cat-color-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .modal-cat-names {
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .modal-cat-names small {
+      display: block;
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: normal;
+    }
+    .modal-content-pane {
+      flex: 1;
+      padding: 16px 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background: #181825;
+    }
+    .modal-section-box {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .modal-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .modal-actions-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .modal-actions-table th, .modal-actions-table td {
+      padding: 6px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-actions-table th {
+      background: #181825;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 11px;
+    }
+    .modal-footer {
+      background: var(--panel);
+      padding: 10px 18px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .color-presets-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .color-preset-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.1s;
+    }
+    .color-preset-dot:hover {
+      transform: scale(1.15);
+    }
+    .color-preset-dot.active {
+      border-color: #fff;
+    }
+    .autosave-badge {
+      font-size: 11px;
+      color: var(--success);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(166, 227, 161, 0.1);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid rgba(166, 227, 161, 0.25);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-left">
+      <h1 id="txt-app-title">Task 3 Multimodal Action Annotator</h1>
+      <div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#181825;">
+        <button id="btn-lang-vi" onclick="setLanguage('vi')" class="primary" style="border:none;border-radius:0;padding:3px 8px;font-size:11px;">🇻🇳 Tiếng Việt</button>
+        <button id="btn-lang-en" onclick="setLanguage('en')" style="border:none;border-radius:0;padding:3px 8px;font-size:11px;">🇬🇧 English</button>
+      </div>
+      <button class="primary sm" id="txt-btn-manage-tax" onclick="openTaxonomyModal()">
+        ⚙️ <span id="txt-manage-tax-label">Quản Lý Hành Vi</span>
+      </button>
+      <div id="autosaveStatus" class="autosave-badge" style="display:none;">
+        <span>💾</span> <span id="autosaveText">Đã tự động lưu</span>
+      </div>
+    </div>
+    <div class="btn-group">
+      <input type="file" id="videoInput" accept="video/mp4,video/webm" style="display:none">
+      <button id="txt-btn-select-video" onclick="document.getElementById('videoInput').click()">📁 Chọn Video (.MP4)</button>
+      <button id="txt-btn-export-csv" onclick="exportCSV()" class="success">Xuất CSV</button>
+      <button id="txt-btn-export-jsonl" onclick="exportJSONL()">Xuất JSONL</button>
+      <input type="file" id="csvInput" accept=".csv" style="display:none">
+      <button id="txt-btn-load-csv" onclick="document.getElementById('csvInput').click()">Nạp CSV</button>
+      <button class="sm danger" onclick="clearAllAnnotations()" title="Xóa toàn bộ nhãn hiện tại">↺ Xóa hết</button>
+    </div>
+  </header>
+
+  <div class="main-workspace">
+    <!-- Video Pane -->
+    <div class="video-pane">
+      <video id="videoPlayer" preload="auto"></video>
+      <div class="video-controls">
+        <button onclick="togglePlay()" id="playBtn" class="primary">Play (Space)</button>
+        <button onclick="stepSeconds(-1)" title="Lùi 1 giây (&larr;)">-1s</button>
+        <button onclick="stepSeconds(1)" title="Tiến 1 giây (&rarr;)">+1s</button>
+        <button onclick="stepFrame(-1)" title="Lùi 1 khung hình (,)" class="sm">-1f</button>
+        <button onclick="stepFrame(1)" title="Tiến 1 khung hình (.)" class="sm">+1f</button>
+        <div class="time-display" id="timeDisplay">00:00.00 / 00:00.00</div>
+        <span id="fpsBadge" style="display:none;background:#313244;color:var(--info);border:1px solid var(--border);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap;" title="Video frame rate">📹 -- fps</span>
+        
+        <!-- Audio Volume Controls -->
+        <div class="volume-box" title="Điều khiển âm lượng để nghe giọng giảng viên">
+          <button id="muteBtn" onclick="toggleMute()" class="icon-btn" style="padding:2px 6px;font-size:12px;">🔊</button>
+          <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1" oninput="setVolume(this.value)">
+        </div>
+
+        <div style="display:flex;gap:3px;align-items:center;">
+          <span id="txt-speed-label" style="font-size:11px;">Tốc độ:</span>
+          <button onclick="setSpeed(0.75)" id="spd-075" class="sm">0.75x</button>
+          <button onclick="setSpeed(1.0)" id="spd-100" class="sm primary">1.0x</button>
+          <button onclick="setSpeed(1.5)" id="spd-150" class="sm">1.5x</button>
+          <button onclick="setSpeed(2.0)" id="spd-200" class="sm">2.0x</button>
+        </div>
+        <button id="txt-btn-start" onclick="setStartHere()" title="Phím tắt: S">[ Bắt đầu (S)</button>
+        <button id="txt-btn-end" onclick="setEndHere()" title="Phím tắt: E">Kết thúc ] (E)</button>
+      </div>
+    </div>
+
+    <!-- Side Pane -->
+    <div class="side-pane">
+      <!-- Pass Focus Section with Modality Filter -->
+      <div class="pass-focus-container">
+        <div class="pass-focus-header">
+          <label id="txt-pass-focus-label">CHẾ ĐỘ DUYỆT (PASS FOCUS):</label>
+          <button class="sm" onclick="openTaxonomyModal()" style="font-size:10px;padding:2px 6px;">+ Thêm Hành Vi</button>
+        </div>
+        
+        <!-- Modality Filter Buttons -->
+        <div class="modality-filters" id="modalityFilters">
+          <button class="modality-filter-btn active" onclick="filterModality('all')" id="mod-filter-all">Tất cả</button>
+          <button class="modality-filter-btn" onclick="filterModality('body')" id="mod-filter-body">🏃 Body</button>
+          <button class="modality-filter-btn" onclick="filterModality('facial')" id="mod-filter-facial">😀 Facial</button>
+          <button class="modality-filter-btn" onclick="filterModality('audio')" id="mod-filter-audio">🎙️ Audio</button>
+          <button class="modality-filter-btn" onclick="filterModality('custom')" id="mod-filter-custom">✨ Khác</button>
+        </div>
+
+        <!-- Dynamic Pass Chips Grid -->
+        <div class="pass-chips-grid" id="passChipsGrid"></div>
+      </div>
+
+      <!-- Add Action Interval Form -->
+      <h2>
+        <span id="txt-add-title">Thêm Đoạn Hành Vi</span>
+        <span id="exclusivityHint" style="font-size:10px;color:var(--warning);font-weight:normal;"></span>
+      </h2>
+      <div class="annotation-form">
+        <div class="form-row">
+          <label>
+            <span id="txt-cat-label">Nhóm hành vi (Category):</span>
+            <button type="button" class="sm" onclick="openTaxonomyModal(currentCatId)" style="font-size:10px;padding:1px 6px;">⚙️ Chi tiết</button>
+          </label>
+          <div class="category-select-wrapper">
+            <select id="catSelect" onchange="onCategoryChange()"></select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>
+            <span id="txt-act-label" style="font-weight:600;">Chọn hành động cụ thể:</span>
+            <div style="display:flex;gap:4px;">
+              <button type="button" class="sm" onclick="quickAddActionPrompt()" style="font-size:10px;padding:1px 6px;">+ Thêm mục</button>
+              <button type="button" class="sm" id="txt-btn-clear" onclick="clearSelectedActions()" style="font-size:10px;padding:1px 6px;">Bỏ chọn</button>
+            </div>
+          </label>
+          
+          <!-- Dynamic Action Chips -->
+          <div class="action-chips-container" id="quickActionButtons"></div>
+
+          <!-- Selected Preview Box -->
+          <div class="selected-preview" id="selectedPreview">
+            <span id="txt-no-sel-hint" style="color:var(--text-muted);font-size:11px;">Chưa chọn hành động nào</span>
+          </div>
+        </div>
+
+        <div class="time-inputs">
+          <div class="form-row">
+            <label id="txt-start-label">Start (giây):</label>
+            <div class="time-row-inner">
+              <input type="number" id="startInput" step="0.05" value="0.0">
+              <button type="button" class="sm" onclick="setStartHere()" title="Lấy giờ video hiện tại">S</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <label id="txt-end-label">End (giây):</label>
+            <div class="time-row-inner">
+              <input type="number" id="endInput" step="0.05" value="5.0">
+              <button type="button" class="sm" onclick="setEndHere()" title="Lấy giờ video hiện tại">E</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label id="txt-note-label">Ghi chú (Tùy chọn):</label>
+          <input type="text" id="noteInput" placeholder="Ví dụ: Chỉ tay lên slide, biểu cảm tập trung...">
+        </div>
+
+        <div class="form-row" style="display:flex;gap:8px;">
+          <div style="flex:1;">
+            <label id="txt-track-label">Track ID (Nhân vật):</label>
+            <input type="number" id="trackIdInput" min="1" value="1" step="1" style="width:100%;">
+          </div>
+          <div style="flex:1;">
+            <label id="txt-role-label">Vai trò (Role):</label>
+            <select id="roleSelect" style="width:100%;">
+              <option value="lecturer" selected>Lecturer (Giảng viên)</option>
+              <option value="audience">Audience (Khán giả)</option>
+              <option value="unknown">Unknown (Chưa xác định)</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="primary" id="txt-btn-add" onclick="addAnnotation()" style="justify-content:center;padding:7px 12px;">
+          + Thêm Hành Vi (Enter)
+        </button>
+      </div>
+
+      <!-- Annotated List Section -->
+      <h2>
+        <div>
+          <span id="txt-list-title">Danh Sách Đoạn Đã Đánh Nhãn</span>
+          (<span id="annCount">0</span>)
+        </div>
+        <select id="filterListCat" onchange="renderList()" style="background:#181825;border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:4px;font-size:11px;">
+          <option value="all">Hiện tất cả</option>
+        </select>
+      </h2>
+      <div class="annotation-list" id="annList"></div>
+    </div>
+  </div>
+
+  <!-- Timeline Section -->
+  <div class="timeline-container">
+    <div class="timeline-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span id="txt-timeline-header">TIMELINE ĐA LÀN (Kéo chuột trên làn để tạo đoạn mới, kéo 2 đầu block để chỉnh giờ)</span>
+      </div>
+      <div class="timeline-zoom-controls">
+        <span style="font-size:11px;color:var(--text-muted);">Tỉ lệ:</span>
+        <button class="sm" onclick="changeZoom(-5)" title="Thu nhỏ tỉ lệ">-</button>
+        <span id="zoomDisplay" style="font-family:monospace;font-size:11px;color:var(--accent);min-width:45px;text-align:center;">25 px/s</span>
+        <button class="sm" onclick="changeZoom(5)" title="Phóng to tỉ lệ">+</button>
+        <button class="sm" onclick="fitTimelineZoom()" title="Vừa toàn bộ video">Fit</button>
+      </div>
+    </div>
+
+    <div class="tracks-wrapper" id="timelineScroll">
+      <div class="tracks-content" id="tracksContent">
+        <div class="playhead" id="playhead"></div>
+        <!-- Hardware-accelerated Canvas Ruler (0 DOM nodes, extremely lightweight) -->
+        <div class="time-ruler-canvas-wrap">
+          <canvas id="timeRulerCanvas"></canvas>
+        </div>
+        <!-- Single reused ghost element for drag selection -->
+        <div id="laneGhost" class="lane-selection-ghost" style="display:none;"></div>
+        <!-- Dynamic Lanes Container -->
+        <div id="lanesContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Taxonomy Manager Modal -->
+  <div id="taxonomyModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeTaxonomyModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="txt-modal-tax-title">⚙️ Quản Lý Phân Loại Hành Vi & Modality</h2>
+        <button class="modal-close-btn" onclick="closeTaxonomyModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Sidebar: Categories List -->
+        <div class="modal-sidebar">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:11px;font-weight:700;color:var(--text-muted);" id="txt-modal-cat-list-title">DANH SÁCH HÀNH VI</span>
+            <button class="primary sm" onclick="showNewCategoryForm()">+ Tạo Hành Vi Mới</button>
+          </div>
+          <div id="modalCategoryList" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+
+        <!-- Content Pane: Selected Category Details & Specific Actions -->
+        <div class="modal-content-pane" id="modalCategoryDetail"></div>
+      </div>
+      <div class="modal-footer">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <button onclick="exportTaxonomyJSON()" class="sm">📥 Xuất Taxonomy (.JSON)</button>
+          <input type="file" id="taxonomyFileInput" accept=".json" style="display:none" onchange="importTaxonomyJSON(event)">
+          <button onclick="document.getElementById('taxonomyFileInput').click()" class="sm">📤 Nạp Taxonomy (.JSON)</button>
+          <button onclick="resetTaxonomyToDefault()" class="sm danger">↺ Khôi phục mặc định</button>
+        </div>
+        <button class="primary" onclick="closeTaxonomyModal()" style="padding:6px 16px;">Đóng (Xong)</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ----------------------------------------------------
+    // 1. DEFAULT MULTIMODAL TAXONOMY
+    // ----------------------------------------------------
+    const DEFAULT_TAXONOMY = [
+      {
+        id: "locomotion",
+        name_vi: "Locomotion (Di chuyển)",
+        name_en: "Locomotion (Body Displacement)",
+        modality: "body",
+        color: "#f38ba8",
+        is_mutually_exclusive: true,
+        actions: [
+          { id: "stationary", vi: "Đứng yên", en: "Standing in place" },
+          { id: "walking", vi: "Đi lại", en: "Deliberate walking" },
+          { id: "pacing", vi: "Đi qua đi lại", en: "Repetitive pacing" },
+          { id: "stepping_back", vi: "Lùi bước quan sát", en: "Stepping back to observe" }
+        ]
+      },
+      {
+        id: "teaching_gesture",
+        name_vi: "Teaching Gesture (Cử chỉ tay)",
+        name_en: "Teaching Gesture (Hands/Arms)",
+        modality: "body",
+        color: "#fab387",
+        is_mutually_exclusive: false,
+        actions: [
+          { id: "pointing_board", vi: "Chỉ bảng", en: "Pointing at chalkboard/whiteboard" },
+          { id: "pointing_screen", vi: "Chỉ màn hình", en: "Pointing at digital screen" },
+          { id: "illustrative_gesture", vi: "Mô tả khái niệm", en: "Illustrative concept gesture" },
+          { id: "beat_gesture", vi: "Vung tay theo nhịp nói", en: "Rhythmic beat gesture" },
+          { id: "hands_at_rest", vi: "Tay thả lỏng tự nhiên", en: "Hands at rest / neutral" },
+          { id: "holding_chalk", vi: "Cầm phấn", en: "Holding chalk" },
+          { id: "holding_marker", vi: "Cầm bút dạ/viết bảng", en: "Holding whiteboard marker/pen" },
+          { id: "holding_mouse_clicker", vi: "Cầm chuột/clicker", en: "Holding mouse/slide clicker" },
+          { id: "arm_swing_walking", vi: "Vung tay khi đi lại", en: "Arm swing while walking" },
+          { id: "contracted_hand", vi: "Co/nắm bàn tay", en: "Contracted/flexed hand" },
+          { id: "hand_towards_camera", vi: "Đưa tay về phía camera", en: "Hand extended toward camera" }
+        ]
+      },
+      {
+        id: "board_interaction",
+        name_vi: "Board Interaction (Tương tác bảng)",
+        name_en: "Board Interaction (Tools)",
+        modality: "body",
+        color: "#a6e3a1",
+        is_mutually_exclusive: false,
+        actions: [
+          { id: "writing_board", vi: "Viết bảng", en: "Writing on board" },
+          { id: "erasing_board", vi: "Xóa bảng", en: "Erasing board" },
+          { id: "operating_laptop", vi: "Thao tác laptop/clicker", en: "Operating laptop/slide clicker" }
+        ]
+      },
+      {
+        id: "posture_stance",
+        name_vi: "Posture Stance (Tư thế đứng)",
+        name_en: "Posture Stance (Facing/Stance)",
+        modality: "body",
+        color: "#cba6f7",
+        is_mutually_exclusive: true,
+        actions: [
+          { id: "facing_front_0", vi: "Chính diện camera (0°)", en: "Facing front (0° / camera)" },
+          { id: "facing_front_left_45", vi: "Chéo trước trái (45°)", en: "Three-quarter front-left (45°)" },
+          { id: "facing_front_right_45", vi: "Chéo trước phải (-45°)", en: "Three-quarter front-right (-45°)" },
+          { id: "facing_side_left_90", vi: "Nghiêng trái (90°)", en: "Profile stage-left (90°)" },
+          { id: "facing_side_right_90", vi: "Nghiêng phải (-90°)", en: "Profile stage-right (-90°)" },
+          { id: "facing_back_left_135", vi: "Chéo sau trái (135°)", en: "Three-quarter back-left (135°)" },
+          { id: "facing_back_right_135", vi: "Chéo sau phải (-135°)", en: "Three-quarter back-right (-135°)" },
+          { id: "facing_back_180", vi: "Quay lưng (180° / hướng bảng)", en: "Facing back (180° / board)" },
+          { id: "facing_students", vi: "Hướng sinh viên (0°)", en: "Facing students (0°)" },
+          { id: "facing_board", vi: "Hướng bảng viết (180°)", en: "Facing board (180°)" },
+          { id: "side_profile", vi: "Đứng nghiêng (90°)", en: "Generic side profile (90°)" },
+          { id: "leaning_lectern", vi: "Tựa bàn/bục giảng", en: "Leaning on podium/table" }
+        ]
+      },
+      {
+        id: "facial_expression",
+        name_vi: "Facial Expression (Biểu cảm khuôn mặt)",
+        name_en: "Facial Expression (Face / Gaze)",
+        modality: "facial",
+        color: "#f9e2af",
+        is_mutually_exclusive: false,
+        actions: [
+          { id: "smile", vi: "Nụ cười / Thân thiện", en: "Smiling / Friendly" },
+          { id: "neutral_face", vi: "Khuôn mặt bình thường", en: "Neutral expression" },
+          { id: "concentrated_serious", vi: "Tập trung / Nghiêm nghị", en: "Focused / Serious brow" },
+          { id: "questioning_eyebrow", vi: "Nhướn mày / Thắc mắc", en: "Raised eyebrow / Inquiring" },
+          { id: "talking_mouth", vi: "Cử động môi giảng bài", en: "Active speaking mouth movement" },
+          { id: "head_nod", vi: "Gật đầu khích lệ", en: "Head nod / Agreeing" },
+          { id: "head_shake", vi: "Lắc đầu phủ định", en: "Head shake / Disagreeing" },
+          { id: "gaze_audience", vi: "Giao tiếp mắt với người nghe", en: "Looking directly at audience" },
+          { id: "gaze_board_screen", vi: "Nhìn chăm chú vào bảng / slide", en: "Gaze fixed on board / screen" },
+          { id: "gaze_notes_laptop", vi: "Cúi nhìn giáo án / laptop", en: "Looking down at notes / laptop" }
+        ]
+      },
+      {
+        id: "audio_vocal",
+        name_vi: "Audio & Vocal (Âm thanh & Lời nói)",
+        name_en: "Audio & Vocal (Speech / Acoustics)",
+        modality: "audio",
+        color: "#89dceb",
+        is_mutually_exclusive: false,
+        actions: [
+          { id: "lecture_speech", vi: "Thuyết giảng lưu loát", en: "Fluent lecture speech" },
+          { id: "emphasis_loud", vi: "Nhấn giọng / Cao trào âm lượng", en: "Loud vocal emphasis / Stress" },
+          { id: "questioning_tone", vi: "Ngữ điệu đặt câu hỏi", en: "Rising pitch question tone" },
+          { id: "pause_silence", vi: "Khoảng lặng sư phạm (Pause)", en: "Pedagogical pause / Silence" },
+          { id: "fast_pace", vi: "Nói tốc độ nhanh", en: "Fast speaking rate" },
+          { id: "slow_deliberate", vi: "Nói chậm rãi, ngắt nhịp", en: "Slow deliberate explanation" },
+          { id: "laughter_humor", vi: "Tiếng cười / Pha trò", en: "Laughter / Humorous tone" },
+          { id: "filler_vocal", vi: "Từ đệm (à, ờ, thì, là...)", en: "Vocal fillers (um, ah, er...)" },
+          { id: "student_interaction", vi: "Đối thoại hỏi đáp", en: "Dialogue / Student Q&A" },
+          { id: "ambient_applause", vi: "Tiếng vỗ tay / tiếng ồn phòng", en: "Applause / Room noise" }
+        ]
+      }
+    ];
+
+    const COLOR_PRESETS = [
+      "#f38ba8", "#fab387", "#f9e2af", "#a6e3a1", "#94e2d5",
+      "#89dceb", "#74c7ec", "#89b4fa", "#b4befe", "#cba6f7", "#f5c2e7"
+    ];
+
+    let categories = [];
+    function loadTaxonomy() {
+      try {
+        const saved = localStorage.getItem("annotator_custom_taxonomy");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            categories = parsed;
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to load custom taxonomy:", e);
+      }
+      categories = JSON.parse(JSON.stringify(DEFAULT_TAXONOMY));
+    }
+
+    function saveTaxonomy() {
+      try {
+        localStorage.setItem("annotator_custom_taxonomy", JSON.stringify(categories));
+      } catch (e) {
+        console.error("Failed to save taxonomy:", e);
+      }
+    }
+
+    loadTaxonomy();
+
+    // ----------------------------------------------------
+    // 2. INTERNATIONALIZATION (i18n)
+    // ----------------------------------------------------
+    let currentLang = localStorage.getItem("annotator_lang") || "vi";
+
+    const i18n = {
+      vi: {
+        app_title: "Task 3 Multimodal Action Annotator (Đánh Nhãn Đa Tầng)",
+        manage_tax_label: "Quản Lý Hành Vi",
+        select_video: "📁 Chọn Video (.MP4)",
+        export_csv: "Xuất CSV",
+        export_jsonl: "Xuất JSONL",
+        load_csv: "Nạp CSV",
+        play: "Play (Space)",
+        pause: "Tạm dừng (Space)",
+        speed_label: "Tốc độ:",
+        start_btn: "[ Bắt đầu (S)",
+        end_btn: "Kết thúc ] (E)",
+        pass_focus_label: "CHẾ ĐỘ DUYỆT (PASS FOCUS):",
+        pass_all: "Tất cả các làn",
+        add_title: "Thêm Đoạn Hành Vi",
+        cat_label: "Nhóm hành vi (Category):",
+        act_label: "Chọn hành động cụ thể:",
+        clear_all: "Bỏ chọn",
+        no_sel_hint: "Chưa chọn hành động nào (Bấm phím 1-9 hoặc nhấp thẻ)",
+        err_no_action: "Vui lòng chọn ít nhất 1 hành động!",
+        err_time: "Lỗi: Thời gian kết thúc phải lớn hơn thời gian bắt đầu!",
+        err_empty: "Chưa có nhãn nào được đánh!",
+        start_label: "Start (giây):",
+        end_label: "End (giây):",
+        note_label: "Ghi chú (Tùy chọn):",
+        note_placeholder: "Ví dụ: Chỉ tay lên slide, biểu cảm tập trung...",
+        add_btn: "+ Thêm Hành Vi (Enter)",
+        list_title: "Danh Sách Đoạn Đã Đánh Nhãn",
+        filter_all: "Hiện tất cả",
+        timeline_header: "TIMELINE ĐA LÀN (Kéo chuột trên làn để tạo đoạn mới, kéo 2 đầu block để chỉnh giờ)",
+        loaded_csv: "Đã nạp thành công {count} đoạn hành vi từ CSV!",
+        modal_tax_title: "⚙️ Quản Lý Phân Loại Hành Vi & Modality",
+        modal_cat_list_title: "DANH SÁCH HÀNH VI",
+        single_select_hint: "• Đơn nhãn (Mutually Exclusive)",
+        multi_select_hint: "• Đa nhãn (Multi-label)",
+        confirm_del_cat: "Bạn có chắc muốn xóa hành vi '{name}'? Các đoạn đã gán nhãn thuộc hành vi này vẫn sẽ được giữ lại trên timeline.",
+        confirm_reset_tax: "Bạn có chắc chắn muốn khôi phục toàn bộ danh mục hành vi về mặc định ban đầu?",
+        confirm_clear_all: "Bạn có chắc chắn muốn xóa toàn bộ nhãn hiện tại?",
+        tax_saved: "Đã lưu cấu hình phân loại thành công!",
+        tax_imported: "Đã nạp thành công {count} nhóm hành vi từ file JSON!",
+        autosave_msg: "Đã tự động lưu ({count} đoạn)",
+        track_label: "Track ID (Nhân vật):",
+        role_label: "Vai trò (Role):",
+        role_lecturer: "Lecturer (Giảng viên)",
+        role_audience: "Audience (Khán giả)",
+        role_unknown: "Unknown (Chưa xác định)",
+        collision_warn: "⚠️ Xung đột thời gian!\nNhóm '{cat}' là loại đơn chọn (mutually exclusive).\nĐã tồn tại: [{start}s – {end}s] {actions}\nBạn có muốn thay thế đoạn cũ?",
+        collision_move_warn: "⚠️ Xung đột thời gian trong nhóm '{cat}': trùng với đoạn [{start}s – {end}s]",
+        warn_4k: "⚠️ Video 4K ({w}×{h}) phát hiện!\nĐể tránh lag và tràn RAM, nên dùng phiên bản 720p/1080p cho annotation.\n(Chất lượng video không ảnh hưởng nhãn xuất ra)",
+        memory_low_device: "⚠️ Thiết bị có bộ nhớ RAM thấp (<= 4GB). Hãy xuất file CSV/JSONL thường xuyên để dự phòng.",
+        memory_pressure: "⚠️ Bộ nhớ JavaScript đang chịu tải cao (> 70% heap). Vui lòng lưu file và tải lại trang nếu thấy giật lag."
+      },
+      en: {
+        app_title: "Task 3 Multimodal Action Annotator (Visual Multi-track)",
+        manage_tax_label: "Manage Taxonomy",
+        select_video: "📁 Choose Video (.MP4)",
+        export_csv: "Export CSV",
+        export_jsonl: "Export JSONL",
+        load_csv: "Load CSV",
+        play: "Play (Space)",
+        pause: "Pause (Space)",
+        speed_label: "Speed:",
+        start_btn: "[ Set Start (S)",
+        end_btn: "Set End ] (E)",
+        pass_focus_label: "PASS FOCUS MODE:",
+        pass_all: "All Tracks",
+        add_title: "Add Action Interval",
+        cat_label: "Action Category:",
+        act_label: "Select Specific Actions:",
+        clear_all: "Clear",
+        no_sel_hint: "No action selected yet (Press 1-9 or click chips)",
+        err_no_action: "Please select at least 1 action!",
+        err_time: "Error: End timestamp must be greater than start timestamp!",
+        err_empty: "No annotations recorded yet!",
+        start_label: "Start (sec):",
+        end_label: "End (sec):",
+        note_label: "Notes (Optional):",
+        note_placeholder: "e.g. Pointing to the left slide, focused brow...",
+        add_btn: "+ Add Action (Enter)",
+        list_title: "Annotated Action List",
+        filter_all: "Show All",
+        timeline_header: "MULTI-LANE TIMELINE (Drag mouse on lane to create interval, drag handles to resize)",
+        loaded_csv: "Successfully loaded {count} action intervals from CSV!",
+        modal_tax_title: "⚙️ Behavior Taxonomy & Modality Manager",
+        modal_cat_list_title: "BEHAVIOR CATEGORIES",
+        single_select_hint: "• Exclusive (Single-label)",
+        multi_select_hint: "• Multi-label allowed",
+        confirm_del_cat: "Are you sure you want to delete category '{name}'? Existing annotations will be preserved.",
+        confirm_reset_tax: "Are you sure you want to reset the entire taxonomy back to default presets?",
+        confirm_clear_all: "Are you sure you want to remove all current annotations?",
+        tax_saved: "Taxonomy saved successfully!",
+        tax_imported: "Successfully imported {count} categories from JSON file!",
+        autosave_msg: "Autosaved ({count} intervals)",
+        track_label: "Track ID (Person):",
+        role_label: "Role:",
+        role_lecturer: "Lecturer",
+        role_audience: "Audience",
+        role_unknown: "Unknown",
+        collision_warn: "⚠️ Temporal Collision!\nCategory '{cat}' is mutually exclusive.\nExisting interval: [{start}s – {end}s] {actions}\nDo you want to replace the existing interval?",
+        collision_move_warn: "⚠️ Temporal collision in category '{cat}': overlaps with [{start}s – {end}s]",
+        warn_4k: "⚠️ 4K video detected ({w}×{h})!\nTo prevent high RAM usage and lag, consider using 720p/1080p proxies.\n(Video resolution does not affect exported labels)",
+        memory_low_device: "⚠️ Low system memory detected (<= 4GB). Please export CSV/JSONL periodically as backup.",
+        memory_pressure: "⚠️ High JavaScript heap usage (> 70%). Please save your work and reload if lag occurs."
+      }
+    };
+
+    // ----------------------------------------------------
+    // 3. APPLICATION STATE & PERFORMANCE ARCHITECTURE
+    // ----------------------------------------------------
+    let videoFile = null;
+    let videoId = "video_sample";
+    let currentVideoObjectUrl = null;
+    let annotations = [];
+    let pixelsPerSecond = 25; // Dynamic zoomable scale
+    let nominalFps = 30; // mutable — will be auto-detected from video
+
+    const video = document.getElementById("videoPlayer");
+    const playhead = document.getElementById("playhead");
+    const tracksContent = document.getElementById("tracksContent");
+    const timeRulerCanvas = document.getElementById("timeRulerCanvas");
+    const timelineScroll = document.getElementById("timelineScroll");
+    const lanesContainer = document.getElementById("lanesContainer");
+    const laneGhost = document.getElementById("laneGhost");
+    const timeDisplayEl = document.getElementById("timeDisplay");
+
+    let currentPass = "all";
+    let currentModalityFilter = "all";
+    let currentCatId = categories[0] ? categories[0].id : "locomotion";
+    let selectedActions = new Set();
+    let modalSelectedCatId = currentCatId;
+
+    // Helper functions
+    function getCategory(catId) {
+      return categories.find(c => c.id === catId);
+    }
+    function getCategoryColor(catId) {
+      const cat = getCategory(catId);
+      return cat ? (cat.color || "#89b4fa") : "#89b4fa";
+    }
+    function getCategoryName(cat, lang = currentLang) {
+      if (!cat) return "";
+      return lang === "en" ? (cat.name_en || cat.name_vi || cat.id) : (cat.name_vi || cat.name_en || cat.id);
+    }
+    function getModalityIcon(modality) {
+      switch (modality) {
+        case "body": return "🏃";
+        case "facial": return "😀";
+        case "audio": return "🎙️";
+        default: return "✨";
+      }
+    }
+    function formatTime(t) {
+      if (!isFinite(t) || isNaN(t) || t < 0) t = 0;
+      const m = Math.floor(t / 60);
+      const s = Math.floor(t % 60);
+      const cs = Math.floor((t % 1) * 100);
+      return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}.${cs < 10 ? '0' : ''}${cs}`;
+    }
+
+    // ----------------------------------------------------
+    // 4. PERSISTENCE (IndexedDB + localStorage fallback)
+    // ----------------------------------------------------
+    const IDB_NAME = 'ActionAnnotatorDB';
+    const IDB_VERSION = 1;
+    const IDB_STORE = 'drafts';
+
+    function openIDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains(IDB_STORE)) {
+            db.createObjectStore(IDB_STORE);
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function idbSave(key, data) {
+      const db = await openIDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(data, key);
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => { db.close(); reject(tx.error); };
+      });
+    }
+
+    async function idbLoad(key) {
+      const db = await openIDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readonly');
+        const req = tx.objectStore(IDB_STORE).get(key);
+        req.onsuccess = () => { db.close(); resolve(req.result || null); };
+        req.onerror = () => { db.close(); reject(req.error); };
+      });
+    }
+
+    function updateAutoSaveBadge() {
+      const badge = document.getElementById("autosaveStatus");
+      const txt = document.getElementById("autosaveText");
+      if (badge && txt) {
+        badge.style.display = "inline-flex";
+        txt.textContent = i18n[currentLang].autosave_msg.replace("{count}", annotations.length);
+      }
+    }
+
+    function saveDraft() {
+      const key = "annotator_draft_" + videoId;
+      const data = { annotations, taxonomy: categories, savedAt: Date.now() };
+      // Try IndexedDB first (no size limit), fallback to localStorage
+      idbSave(key, data).then(() => {
+        updateAutoSaveBadge();
+      }).catch(e => {
+        console.warn("IndexedDB save failed, fallback localStorage:", e);
+        try {
+          localStorage.setItem(key, JSON.stringify(annotations));
+          updateAutoSaveBadge();
+        } catch (e2) {
+          console.warn("Both IndexedDB and localStorage failed:", e2);
+        }
+      });
+    }
+
+    async function loadDraftAsync() {
+      const key = "annotator_draft_" + videoId;
+      // Try IndexedDB first
+      try {
+        const data = await idbLoad(key);
+        if (data && data.annotations && data.annotations.length > 0) {
+          annotations = data.annotations;
+          renderList();
+          renderTimeline();
+          updateAutoSaveBadge();
+          return true;
+        }
+      } catch (e) { /* fallback below */ }
+
+      // Fallback: read from old localStorage & migrate
+      try {
+        const saved = localStorage.getItem(key);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            annotations = parsed;
+            renderList();
+            renderTimeline();
+            updateAutoSaveBadge();
+            // Migrate: move to IndexedDB and clean localStorage
+            localStorage.removeItem(key);
+            saveDraft();
+            return true;
+          }
+        }
+      } catch (e) {
+        console.warn("Load draft failed:", e);
+      }
+      return false;
+    }
+
+    // Synchronous wrapper for boot compatibility
+    function loadDraft() {
+      loadDraftAsync().catch(e => console.warn("loadDraftAsync error:", e));
+    }
+
+    function clearAllAnnotations() {
+      if (annotations.length === 0) return;
+      if (confirm(i18n[currentLang].confirm_clear_all)) {
+        annotations = [];
+        saveDraft();
+        renderList();
+
+        renderTimeline();
+      }
+    }
+
+    // ----------------------------------------------------
+    // 4b. FPS AUTO-DETECTION
+    // ----------------------------------------------------
+    function snapToStandardFps(raw) {
+      const standards = [15, 23.976, 24, 25, 29.97, 30, 50, 59.94, 60];
+      let closest = 30, minDiff = Infinity;
+      for (const s of standards) {
+        const diff = Math.abs(raw - s);
+        if (diff < minDiff) { minDiff = diff; closest = s; }
+      }
+      return closest;
+    }
+
+    function detectFps(videoEl) {
+      return new Promise((resolve) => {
+        // Layer 1: requestVideoFrameCallback (Chrome 83+, Edge 83+)
+        if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+          let lastTime = null;
+          let deltas = [];
+          const sampleCount = 10;
+          let callbackId = null;
+          let timeoutId = null;
+
+          function onFrame(now, metadata) {
+            if (lastTime !== null) {
+              const delta = metadata.mediaTime - lastTime;
+              if (delta > 0 && delta < 1) deltas.push(delta);
+            }
+            lastTime = metadata.mediaTime;
+            if (deltas.length < sampleCount) {
+              callbackId = videoEl.requestVideoFrameCallback(onFrame);
+            } else {
+              clearTimeout(timeoutId);
+              const avgDelta = deltas.reduce((a, b) => a + b, 0) / deltas.length;
+              const rawFps = 1 / avgDelta;
+              resolve(snapToStandardFps(rawFps));
+            }
+          }
+
+          const wasPlaying = !videoEl.paused;
+          const savedTime = videoEl.currentTime;
+          const savedMuted = videoEl.muted;
+          videoEl.muted = true;
+          callbackId = videoEl.requestVideoFrameCallback(onFrame);
+          videoEl.play().then(() => {
+            timeoutId = setTimeout(() => {
+              videoEl.pause();
+              videoEl.currentTime = savedTime;
+              videoEl.muted = savedMuted;
+              if (deltas.length >= 3) {
+                const avgDelta = deltas.reduce((a, b) => a + b, 0) / deltas.length;
+                resolve(snapToStandardFps(1 / avgDelta));
+              } else {
+                resolve(30); // Fallback
+              }
+            }, 1200);
+          }).catch(() => resolve(30));
+          return;
+        }
+        // Layer 2: No API available → fallback
+        resolve(30);
+      });
+    }
+
+    function updateFpsBadge(fps) {
+      const badge = document.getElementById("fpsBadge");
+      if (badge) {
+        badge.textContent = `📹 ${fps} fps`;
+        badge.title = `Detected video frame rate: ${fps} fps`;
+        badge.style.display = "inline-flex";
+      }
+    }
+
+    // ----------------------------------------------------
+    // 4c. TOAST NOTIFICATION SYSTEM
+    // ----------------------------------------------------
+    function showToast(message, type = "info", durationMs = 5000) {
+      const colors = {
+        info: "var(--info)",
+        warning: "var(--warning)",
+        danger: "var(--danger)",
+        success: "var(--success)"
+      };
+      const toast = document.createElement("div");
+      toast.style.cssText = `
+        position:fixed; top:60px; right:20px; z-index:99999;
+        background:#252538; color:var(--text); border:1px solid ${colors[type] || colors.info};
+        border-left:4px solid ${colors[type] || colors.info};
+        padding:12px 18px; border-radius:8px; font-size:13px;
+        max-width:420px; box-shadow:0 4px 20px rgba(0,0,0,0.5);
+        animation: toastIn 0.3s ease-out;
+        white-space: pre-line; line-height: 1.5;
+      `;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transition = "opacity 0.3s";
+        setTimeout(() => toast.remove(), 300);
+      }, durationMs);
+    }
+
+    // ----------------------------------------------------
+    // 4d. TEMPORAL COLLISION DETECTION
+    // ----------------------------------------------------
+    function checkTemporalCollision(catId, trackId, start, end, excludeId) {
+      const cat = getCategory(catId);
+      if (!cat || !cat.is_mutually_exclusive) return null;
+      for (const a of annotations) {
+        if (a.id === excludeId) continue;
+        if (a.category !== catId) continue;
+        if ((a.track_id || 1) !== trackId) continue;
+        // Overlap check: [a.start, a.end) ∩ [start, end) ≠ ∅
+        if (a.start < end && a.end > start) {
+          return a;
+        }
+      }
+      return null;
+    }
+
+    // ----------------------------------------------------
+    // 4e. MEMORY MANAGEMENT
+    // ----------------------------------------------------
+    function checkMemoryPressure() {
+      // navigator.deviceMemory (Chrome only)
+      if (navigator.deviceMemory && navigator.deviceMemory <= 4) {
+        showToast(i18n[currentLang].memory_low_device, "warning", 8000);
+      }
+      // performance.memory (Chrome only)
+      if (performance.memory) {
+        const ratio = performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit;
+        if (ratio > 0.7) {
+          showToast(i18n[currentLang].memory_pressure, "warning", 8000);
+        }
+      }
+    }
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (currentVideoObjectUrl) URL.revokeObjectURL(currentVideoObjectUrl);
+    });
+
+
+    function getSafeDuration() {
+      const dur = video.duration;
+      if (!isFinite(dur) || isNaN(dur) || dur <= 0) return 300;
+      return dur;
+    }
+
+    function drawTimeRuler() {
+      const dur = getSafeDuration();
+      const totalWidth = Math.max(1000, Math.ceil(dur * pixelsPerSecond + 150));
+      tracksContent.style.width = totalWidth + "px";
+
+      const canvas = timeRulerCanvas;
+      const ctx = canvas.getContext("2d");
+      const dpr = window.devicePixelRatio || 1;
+      const height = 22;
+
+      canvas.width = totalWidth * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = totalWidth + "px";
+      canvas.style.height = height + "px";
+
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, totalWidth, height);
+
+      // Adaptive tick step based on pixelsPerSecond
+      let stepSec = 5;
+      if (pixelsPerSecond <= 10) stepSec = 30;
+      else if (pixelsPerSecond <= 15) stepSec = 15;
+      else if (pixelsPerSecond <= 30) stepSec = 5;
+      else if (pixelsPerSecond <= 60) stepSec = 2;
+      else stepSec = 1;
+
+      ctx.strokeStyle = "#313244";
+      ctx.lineWidth = 1;
+      ctx.fillStyle = "#a6adc8";
+      ctx.font = "10px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+
+      for (let sec = 0; sec <= dur; sec += stepSec) {
+        const x = Math.round(sec * pixelsPerSecond);
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+
+        const mins = Math.floor(sec / 60);
+        const s = sec % 60;
+        const timeStr = `${mins}:${s < 10 ? '0' : ''}${s}`;
+        ctx.fillText(timeStr, x + 3, 14);
+      }
+    }
+
+    // Zoom Controls
+    function changeZoom(delta) {
+      const newZoom = Math.max(5, Math.min(100, pixelsPerSecond + delta));
+      if (newZoom === pixelsPerSecond) return;
+      pixelsPerSecond = newZoom;
+      document.getElementById("zoomDisplay").textContent = `${pixelsPerSecond} px/s`;
+      drawTimeRuler();
+      renderTimeline();
+      updatePlayheadPosition();
+    }
+
+    function fitTimelineZoom() {
+      const dur = getSafeDuration();
+      const viewWidth = timelineScroll.clientWidth - 150;
+      if (dur > 0 && viewWidth > 300) {
+        const optimal = Math.max(5, Math.min(60, Math.floor(viewWidth / dur)));
+        pixelsPerSecond = optimal;
+        document.getElementById("zoomDisplay").textContent = `${pixelsPerSecond} px/s`;
+        drawTimeRuler();
+        renderTimeline();
+        updatePlayheadPosition();
+      }
+    }
+
+    // ----------------------------------------------------
+    // 6. SINGLE GLOBAL POINTER EVENT MANAGER (LEAK-PROOF)
+    // ----------------------------------------------------
+    // Pointer drag operations: 'lane-create' | 'block-move' | 'resize-left' | 'resize-right'
+    let currentDragOp = null;
+
+    function handleGlobalPointerMove(e) {
+      if (!currentDragOp) return;
+
+      const rect = tracksContent.getBoundingClientRect();
+      const currentX = Math.max(0, e.clientX - rect.left);
+
+      if (currentDragOp.type === "lane-create") {
+        const leftPx = Math.min(currentDragOp.startX, currentX);
+        const widthPx = Math.abs(currentX - currentDragOp.startX);
+        laneGhost.style.left = leftPx + "px";
+        laneGhost.style.width = widthPx + "px";
+
+        const curStartSec = Math.round(leftPx / pixelsPerSecond * 100) / 100;
+        const curEndSec = Math.round((leftPx + widthPx) / pixelsPerSecond * 100) / 100;
+        document.getElementById("startInput").value = curStartSec.toFixed(2);
+        document.getElementById("endInput").value = curEndSec.toFixed(2);
+      }
+      else if (currentDragOp.type === "block-move") {
+        const dx = e.clientX - currentDragOp.pointerStartX;
+        const newLeft = Math.max(0, currentDragOp.initialLeft + dx);
+        currentDragOp.blockEl.style.left = newLeft + "px";
+
+        const dur = currentDragOp.ann.end - currentDragOp.ann.start;
+        currentDragOp.ann.start = Math.round(newLeft / pixelsPerSecond * 100) / 100;
+        currentDragOp.ann.end = Math.round((currentDragOp.ann.start + dur) * 100) / 100;
+      }
+      else if (currentDragOp.type === "resize-right") {
+        const dx = e.clientX - currentDragOp.pointerStartX;
+        const newWidth = Math.max(10, currentDragOp.initialWidth + dx);
+        currentDragOp.blockEl.style.width = newWidth + "px";
+        currentDragOp.ann.end = Math.round((currentDragOp.initialLeft + newWidth) / pixelsPerSecond * 100) / 100;
+      }
+      else if (currentDragOp.type === "resize-left") {
+        const dx = e.clientX - currentDragOp.pointerStartX;
+        const newLeft = Math.max(0, currentDragOp.initialLeft + dx);
+        const newWidth = Math.max(10, currentDragOp.initialWidth - dx);
+        currentDragOp.blockEl.style.left = newLeft + "px";
+        currentDragOp.blockEl.style.width = newWidth + "px";
+        currentDragOp.ann.start = Math.round(newLeft / pixelsPerSecond * 100) / 100;
+      }
+    }
+
+    function handleGlobalPointerUp(e) {
+      if (!currentDragOp) return;
+      const op = currentDragOp;
+      currentDragOp = null;
+
+      if (op.type === "lane-create") {
+        laneGhost.style.display = "none";
+        const rect = tracksContent.getBoundingClientRect();
+        const currentX = Math.max(0, e.clientX - rect.left);
+        const widthPx = Math.abs(currentX - op.startX);
+
+        // Click to seek if not dragged
+        if (widthPx < 5) {
+          video.currentTime = Math.max(0, Math.min(getSafeDuration(), op.startSec));
+        } else {
+          // Select interval & switch category to that lane
+          const leftPx = Math.min(op.startX, currentX);
+          const curStartSec = Math.round(leftPx / pixelsPerSecond * 100) / 100;
+          const curEndSec = Math.round((leftPx + widthPx) / pixelsPerSecond * 100) / 100;
+          document.getElementById("startInput").value = curStartSec.toFixed(2);
+          document.getElementById("endInput").value = curEndSec.toFixed(2);
+          video.currentTime = curStartSec;
+
+          currentCatId = op.catId;
+          document.getElementById("catSelect").value = op.catId;
+          updateExclusivityHint();
+          updateActionOptions();
+        }
+      } else {
+        // Block resize or move completed
+        if (op && op.ann) {
+          const collision = checkTemporalCollision(op.ann.category, op.ann.track_id || 1, op.ann.start, op.ann.end, op.ann.id);
+          if (collision) {
+            const cat = getCategory(op.ann.category);
+            const catName = getCategoryName(cat);
+            const warnMsg = i18n[currentLang].collision_move_warn
+              .replace("{cat}", catName)
+              .replace("{start}", collision.start.toFixed(2))
+              .replace("{end}", collision.end.toFixed(2));
+            showToast(warnMsg, "warning", 4500);
+          }
+        }
+        saveDraft();
+        renderList();
+      }
+    }
+
+    function handleGlobalPointerCancel() {
+      if (currentDragOp) {
+        if (currentDragOp.type === "lane-create") {
+          laneGhost.style.display = "none";
+        }
+        currentDragOp = null;
+      }
+    }
+
+    // Attach global interaction listeners ONCE
+    window.addEventListener("pointermove", handleGlobalPointerMove, { passive: true });
+    window.addEventListener("pointerup", handleGlobalPointerUp);
+    window.addEventListener("pointercancel", handleGlobalPointerCancel);
+    window.addEventListener("blur", handleGlobalPointerCancel);
+
+    // ----------------------------------------------------
+    // 7. SMOOTH PLAYHEAD WITH REQUESTANIMATIONFRAME
+    // ----------------------------------------------------
+    let isPlaybackRunning = false;
+    let lastRenderedTime = -1;
+
+    function updatePlayheadPosition() {
+      const cur = video.currentTime;
+      const dur = getSafeDuration();
+      const x = cur * pixelsPerSecond;
+
+      // GPU translate avoids browser layout reflow
+      playhead.style.transform = `translate3d(${x}px, 0, 0)`;
+
+      // Throttle text display updates
+      if (Math.abs(cur - lastRenderedTime) >= 0.04) {
+        lastRenderedTime = cur;
+        timeDisplayEl.textContent = `${formatTime(cur)} / ${formatTime(dur)}`;
+      }
+
+      // Auto-scroll timeline to keep playhead in view during playback
+      if (!video.paused) {
+        const scrollLeft = timelineScroll.scrollLeft;
+        const viewWidth = timelineScroll.clientWidth;
+        if (x > scrollLeft + viewWidth - 80 || x < scrollLeft) {
+          timelineScroll.scrollLeft = Math.max(0, x - 120);
+        }
+      }
+    }
+
+    function playbackLoop() {
+      if (!isPlaybackRunning) return;
+      updatePlayheadPosition();
+      requestAnimationFrame(playbackLoop);
+    }
+
+    video.addEventListener("play", () => {
+      isPlaybackRunning = true;
+      document.getElementById("playBtn").textContent = i18n[currentLang].pause;
+      requestAnimationFrame(playbackLoop);
+    });
+
+    video.addEventListener("pause", () => {
+      isPlaybackRunning = false;
+      document.getElementById("playBtn").textContent = i18n[currentLang].play;
+      updatePlayheadPosition();
+    });
+
+    video.addEventListener("timeupdate", () => {
+      if (!isPlaybackRunning) {
+        updatePlayheadPosition();
+      }
+    });
+
+    // ----------------------------------------------------
+    // 8. DYNAMIC LANES & TIMELINE RENDERING
+    // ----------------------------------------------------
+    function renderTimelineLanes() {
+      lanesContainer.innerHTML = "";
+
+      const filtered = categories.filter(c => {
+        if (currentModalityFilter === "all") return true;
+        if (currentModalityFilter === "custom") return !["body", "facial", "audio"].includes(c.modality);
+        return c.modality === currentModalityFilter;
+      });
+
+      const fragment = document.createDocumentFragment();
+
+      filtered.forEach(cat => {
+        const lane = document.createElement("div");
+        lane.className = `track-lane`;
+        lane.id = `lane-${cat.id}`;
+        lane.dataset.cat = cat.id;
+
+        const label = document.createElement("span");
+        label.className = "lane-label";
+        label.style.borderLeft = `3px solid ${cat.color}`;
+        label.style.color = cat.color;
+        label.innerHTML = `${getModalityIcon(cat.modality)} ${getCategoryName(cat)}`;
+        label.onclick = (e) => {
+          e.stopPropagation();
+          selectPass(cat.id);
+        };
+        lane.appendChild(label);
+
+        // Mousedown initiates drag-to-create via global pointer manager
+        lane.onpointerdown = (e) => {
+          if (e.target.closest(".action-block") || e.target.closest(".lane-label") || e.button !== 0) return;
+          const rect = tracksContent.getBoundingClientRect();
+          const startX = Math.max(0, e.clientX - rect.left);
+          const startSec = Math.max(0, startX / pixelsPerSecond);
+
+          laneGhost.style.left = startX + "px";
+          laneGhost.style.width = "2px";
+          lane.appendChild(laneGhost);
+          laneGhost.style.display = "block";
+
+          currentDragOp = {
+            type: "lane-create",
+            catId: cat.id,
+            startX: startX,
+            startSec: startSec
+          };
+        };
+
+        fragment.appendChild(lane);
+      });
+
+      lanesContainer.appendChild(fragment);
+      highlightTimelineLanes();
+    }
+
+    function highlightTimelineLanes() {
+      document.querySelectorAll(".track-lane").forEach(lane => {
+        const catId = lane.dataset.cat;
+        if (currentPass === "all") {
+          lane.classList.remove("dimmed");
+          lane.classList.remove("focused");
+        } else if (currentPass === catId) {
+          lane.classList.remove("dimmed");
+          lane.classList.add("focused");
+        } else {
+          lane.classList.add("dimmed");
+          lane.classList.remove("focused");
+        }
+      });
+    }
+
+    function renderTimeline() {
+      // Clear existing action blocks
+      document.querySelectorAll(".track-lane .action-block").forEach(b => b.remove());
+
+      annotations.forEach(ann => {
+        const lane = document.getElementById(`lane-${ann.category}`);
+        if (!lane) return;
+
+        const color = getCategoryColor(ann.category);
+        const block = document.createElement("div");
+        block.className = `action-block`;
+        block.style.background = color;
+
+        const left = Math.round(ann.start * pixelsPerSecond);
+        const width = Math.max(12, Math.round((ann.end - ann.start) * pixelsPerSecond));
+        block.style.left = left + "px";
+        block.style.width = width + "px";
+
+        const actionDisplay = (ann.actions && ann.actions.length > 0) ? ann.actions.join(" + ") : (ann.action || "");
+        block.textContent = actionDisplay;
+        block.title = `${actionDisplay} (${ann.start.toFixed(2)}s - ${ann.end.toFixed(2)}s)`;
+
+        // Handles
+        const hl = document.createElement("div");
+        hl.className = "handle left";
+        const hr = document.createElement("div");
+        hr.className = "handle right";
+        block.appendChild(hl);
+        block.appendChild(hr);
+
+        block.onclick = (e) => {
+          e.stopPropagation();
+          video.currentTime = ann.start;
+          if (document.getElementById("trackIdInput")) document.getElementById("trackIdInput").value = ann.track_id || 1;
+          if (document.getElementById("roleSelect")) document.getElementById("roleSelect").value = ann.role || "lecturer";
+        };
+
+        // Pointerdown events dispatch to global drag manager (0 memory leak!)
+        hl.onpointerdown = (e) => {
+          e.stopPropagation();
+          currentDragOp = {
+            type: "resize-left",
+            ann: ann,
+            blockEl: block,
+            pointerStartX: e.clientX,
+            initialLeft: parseFloat(block.style.left) || 0,
+            initialWidth: parseFloat(block.style.width) || 12
+          };
+        };
+
+        hr.onpointerdown = (e) => {
+          e.stopPropagation();
+          currentDragOp = {
+            type: "resize-right",
+            ann: ann,
+            blockEl: block,
+            pointerStartX: e.clientX,
+            initialLeft: parseFloat(block.style.left) || 0,
+            initialWidth: parseFloat(block.style.width) || 12
+          };
+        };
+
+        block.onpointerdown = (e) => {
+          if (e.target.classList.contains("handle") || e.button !== 0) return;
+          e.stopPropagation();
+          currentDragOp = {
+            type: "block-move",
+            ann: ann,
+            blockEl: block,
+            pointerStartX: e.clientX,
+            initialLeft: parseFloat(block.style.left) || 0
+          };
+        };
+
+        lane.appendChild(block);
+      });
+    }
+
+    // ----------------------------------------------------
+    // 9. ANNOTATION LIST
+    // ----------------------------------------------------
+    function renderList() {
+      const listEl = document.getElementById("annList");
+      const filterCat = document.getElementById("filterListCat").value;
+      listEl.innerHTML = "";
+      document.getElementById("annCount").textContent = annotations.length;
+
+      const filtered = annotations.filter(a => filterCat === "all" || a.category === filterCat);
+      const fragment = document.createDocumentFragment();
+
+      filtered.forEach(ann => {
+        const cat = getCategory(ann.category);
+        const color = getCategoryColor(ann.category);
+        const card = document.createElement("div");
+        card.className = `ann-card`;
+        card.style.borderLeftColor = color;
+        card.onclick = () => {
+          video.currentTime = ann.start;
+          if (document.getElementById("trackIdInput")) document.getElementById("trackIdInput").value = ann.track_id || 1;
+          if (document.getElementById("roleSelect")) document.getElementById("roleSelect").value = ann.role || "lecturer";
+        };
+
+        const actionDisplay = (ann.actions && ann.actions.length > 0) ? ann.actions.join(" + ") : (ann.action || "");
+        const catName = cat ? getCategoryName(cat) : ann.category;
+        const modalityIcon = getModalityIcon(cat ? cat.modality : 'body');
+
+        card.innerHTML = `
+          <div class="ann-info">
+            <div class="ann-info-top">
+              <span class="ann-cat-badge" style="background:${color}33;color:${color};border:1px solid ${color};">
+                ${modalityIcon} ${catName}
+              </span>
+              ${(ann.track_id && ann.track_id !== 1) || (ann.role && ann.role !== "lecturer") ? `<span style="font-size:10px;color:var(--text-muted);background:#313244;padding:1px 5px;border-radius:3px;">👤T${ann.track_id || 1}·${ann.role || "lecturer"}</span>` : ''}
+              <strong class="ann-actions-text">${actionDisplay}</strong>
+            </div>
+            <div class="ann-time-text">
+              ${ann.start.toFixed(2)}s &rarr; ${ann.end.toFixed(2)}s (${(ann.end - ann.start).toFixed(1)}s)
+            </div>
+            ${ann.note ? `<div class="ann-note-text">${ann.note}</div>` : ''}
+          </div>
+          <div class="ann-del" onclick="event.stopPropagation(); deleteAnnotation('${ann.id}')" title="Xóa">&times;</div>
+        `;
+        fragment.appendChild(card);
+      });
+
+      listEl.appendChild(fragment);
+    }
+
+    function addAnnotation() {
+      const catId = document.getElementById("catSelect").value;
+      const start = parseFloat(document.getElementById("startInput").value);
+      const end = parseFloat(document.getElementById("endInput").value);
+      const note = document.getElementById("noteInput").value.trim();
+      const trackId = parseInt(document.getElementById("trackIdInput").value) || 1;
+      const role = document.getElementById("roleSelect").value || "lecturer";
+
+      if (isNaN(start) || isNaN(end) || end <= start) {
+        alert(i18n[currentLang].err_time);
+        return;
+      }
+      if (selectedActions.size === 0) {
+        alert(i18n[currentLang].err_no_action);
+        return;
+      }
+
+      // Temporal collision check for mutually exclusive categories
+      const collision = checkTemporalCollision(catId, trackId, start, end, null);
+      if (collision) {
+        const catName = getCategoryName(getCategory(catId));
+        const msg = i18n[currentLang].collision_warn
+          .replace("{cat}", catName)
+          .replace("{start}", collision.start.toFixed(2))
+          .replace("{end}", collision.end.toFixed(2))
+          .replace("{actions}", collision.actions.join(", "));
+        if (!confirm(msg)) return;
+        // Remove conflicting annotation
+        annotations = annotations.filter(a => a.id !== collision.id);
+      }
+
+      const actionsList = Array.from(selectedActions);
+      const cat = getCategory(catId);
+
+      annotations.push({
+        id: "ann_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+        category: catId,
+        modality: cat ? cat.modality : "body",
+        actions: actionsList,
+        start: Math.round(start * 100) / 100,
+        end: Math.round(end * 100) / 100,
+        note: note,
+        track_id: trackId,
+        role: role
+      });
+
+      selectedActions.clear();
+      updateChipsAndPreview();
+
+      annotations.sort((a, b) => a.start - b.start);
+      saveDraft();
+      renderList();
+      renderTimeline();
+    }
+
+    function deleteAnnotation(id) {
+      annotations = annotations.filter(a => a.id !== id);
+      saveDraft();
+      renderList();
+      renderTimeline();
+    }
+
+    // ----------------------------------------------------
+    // 10. CATEGORY DROPDOWN & FORM CHIPS
+    // ----------------------------------------------------
+    function populateCategoryDropdown() {
+      const select = document.getElementById("catSelect");
+      const filterListSelect = document.getElementById("filterListCat");
+      const prevVal = select.value || currentCatId;
+
+      select.innerHTML = "";
+      filterListSelect.innerHTML = `<option value="all">${i18n[currentLang].filter_all}</option>`;
+
+      const modalityGroups = {
+        body: { label_vi: "🏃 Chuyển Động Cơ Thể (Body Movement)", label_en: "🏃 Body Movement", items: [] },
+        facial: { label_vi: "😀 Biểu Cảm Khuôn Mặt (Facial)", label_en: "😀 Facial Expression", items: [] },
+        audio: { label_vi: "🎙️ Âm Thanh & Giọng Nói (Audio)", label_en: "🎙️ Audio & Vocal", items: [] },
+        custom: { label_vi: "✨ Nhóm Tùy Chỉnh (Custom)", label_en: "✨ Custom Modality", items: [] }
+      };
+
+      categories.forEach(c => {
+        const modKey = ["body", "facial", "audio"].includes(c.modality) ? c.modality : "custom";
+        modalityGroups[modKey].items.push(c);
+
+        const opt = document.createElement("option");
+        opt.value = c.id;
+        opt.textContent = getCategoryName(c);
+        filterListSelect.appendChild(opt);
+      });
+
+      Object.values(modalityGroups).forEach(grp => {
+        if (grp.items.length === 0) return;
+        const optgroup = document.createElement("optgroup");
+        optgroup.label = currentLang === "en" ? grp.label_en : grp.label_vi;
+        grp.items.forEach(c => {
+          const opt = document.createElement("option");
+          opt.value = c.id;
+          opt.textContent = `${getCategoryName(c)} (${c.actions.length})`;
+          optgroup.appendChild(opt);
+        });
+        select.appendChild(optgroup);
+      });
+
+      if (getCategory(prevVal)) {
+        select.value = prevVal;
+        currentCatId = prevVal;
+      } else if (categories[0]) {
+        select.value = categories[0].id;
+        currentCatId = categories[0].id;
+      }
+      updateExclusivityHint();
+    }
+
+    function onCategoryChange() {
+      currentCatId = document.getElementById("catSelect").value;
+      selectedActions.clear();
+      updateExclusivityHint();
+      updateActionOptions();
+    }
+
+    function updateExclusivityHint() {
+      const cat = getCategory(currentCatId);
+      const hintEl = document.getElementById("exclusivityHint");
+      if (!cat || !hintEl) return;
+      hintEl.textContent = cat.is_mutually_exclusive
+        ? i18n[currentLang].single_select_hint
+        : i18n[currentLang].multi_select_hint;
+      hintEl.style.color = cat.is_mutually_exclusive ? "var(--warning)" : "var(--accent)";
+    }
+
+    function toggleAction(actionId) {
+      const cat = getCategory(currentCatId);
+      if (!cat) return;
+
+      if (cat.is_mutually_exclusive) {
+        if (selectedActions.has(actionId)) selectedActions.clear();
+        else {
+          selectedActions.clear();
+          selectedActions.add(actionId);
+        }
+      } else {
+        if (selectedActions.has(actionId)) selectedActions.delete(actionId);
+        else selectedActions.add(actionId);
+      }
+      updateChipsAndPreview();
+    }
+
+    function clearSelectedActions() {
+      selectedActions.clear();
+      updateChipsAndPreview();
+    }
+
+    function updateChipsAndPreview() {
+      const quickBox = document.getElementById("quickActionButtons");
+      const previewBox = document.getElementById("selectedPreview");
+
+      quickBox.querySelectorAll(".action-chip-btn").forEach(btn => {
+        const actId = btn.dataset.actionId;
+        if (selectedActions.has(actId)) btn.classList.add("selected");
+        else btn.classList.remove("selected");
+      });
+
+      if (selectedActions.size === 0) {
+        previewBox.innerHTML = `<span id="txt-no-sel-hint" style="color:var(--text-muted);font-size:11px;">${i18n[currentLang].no_sel_hint}</span>`;
+      } else {
+        previewBox.innerHTML = "";
+        selectedActions.forEach(actId => {
+          const cat = getCategory(currentCatId);
+          const actObj = cat ? cat.actions.find(a => a.id === actId) : null;
+          const actDesc = actObj ? (currentLang === "en" ? actObj.en : actObj.vi) : actId;
+
+          const chip = document.createElement("span");
+          chip.className = "selected-tag";
+          chip.innerHTML = `<span>${actId}</span> <small style="color:#a6adc8;">(${actDesc})</small> <span class="remove-btn" onclick="toggleAction('${actId}')">&times;</span>`;
+          previewBox.appendChild(chip);
+        });
+      }
+    }
+
+    function updateActionOptions() {
+      const cat = getCategory(currentCatId);
+      const quickBox = document.getElementById("quickActionButtons");
+      quickBox.innerHTML = "";
+
+      if (!cat || !cat.actions || cat.actions.length === 0) {
+        quickBox.innerHTML = `<span style="font-size:11px;color:var(--text-muted);padding:4px;">Chưa có hành động nào. Bấm <b>+ Thêm mục</b> ở trên để tạo.</span>`;
+        updateChipsAndPreview();
+        return;
+      }
+
+      cat.actions.forEach((item, idx) => {
+        const desc = currentLang === "en" ? item.en : item.vi;
+        const qbtn = document.createElement("button");
+        qbtn.type = "button";
+        qbtn.className = `action-chip-btn ${selectedActions.has(item.id) ? 'selected' : ''}`;
+        qbtn.dataset.actionId = item.id;
+        const numShortcut = idx < 9 ? `[${idx + 1}] ` : "";
+        qbtn.innerHTML = `<span>${numShortcut}<b>${item.id}</b></span> <small style="opacity:0.8;">(${desc})</small>`;
+        qbtn.title = desc;
+        qbtn.onclick = () => toggleAction(item.id);
+        quickBox.appendChild(qbtn);
+      });
+
+      updateChipsAndPreview();
+    }
+
+    function quickAddActionPrompt() {
+      const cat = getCategory(currentCatId);
+      if (!cat) return;
+      const actId = prompt(`Thêm hành động cụ thể cho nhóm [${getCategoryName(cat)}]:\nNhập Action ID (ví dụ: look_left):`);
+      if (!actId || !actId.trim()) return;
+      const cleanId = actId.trim().toLowerCase().replace(/[\s-]+/g, "_");
+      if (cat.actions.some(a => a.id === cleanId)) {
+        alert("Action ID này đã tồn tại!");
+        return;
+      }
+      const viName = prompt("Tên tiếng Việt hiển thị:", cleanId) || cleanId;
+      const enName = prompt("Tên tiếng Anh hiển thị:", cleanId) || cleanId;
+
+      cat.actions.push({ id: cleanId, vi: viName.trim(), en: enName.trim() });
+      saveTaxonomy();
+      updateActionOptions();
+      toggleAction(cleanId);
+    }
+
+    // ----------------------------------------------------
+    // 11. PASS FOCUS & MODALITY FILTER
+    // ----------------------------------------------------
+    function filterModality(mod) {
+      currentModalityFilter = mod;
+      ["all", "body", "facial", "audio", "custom"].forEach(m => {
+        const btn = document.getElementById("mod-filter-" + m);
+        if (btn) {
+          if (m === mod) btn.classList.add("active");
+          else btn.classList.remove("active");
+        }
+      });
+      refreshPassFocusChips();
+      renderTimelineLanes();
+      renderTimeline();
+    }
+
+    function refreshPassFocusChips() {
+      const container = document.getElementById("passChipsGrid");
+      container.innerHTML = "";
+
+      const allBtn = document.createElement("button");
+      allBtn.className = `pass-chip ${currentPass === 'all' ? 'active' : ''}`;
+      allBtn.textContent = i18n[currentLang].pass_all;
+      allBtn.onclick = () => selectPass('all');
+      container.appendChild(allBtn);
+
+      const filtered = categories.filter(c => {
+        if (currentModalityFilter === "all") return true;
+        if (currentModalityFilter === "custom") return !["body", "facial", "audio"].includes(c.modality);
+        return c.modality === currentModalityFilter;
+      });
+
+      filtered.forEach(c => {
+        const btn = document.createElement("button");
+        btn.className = `pass-chip ${currentPass === c.id ? 'active' : ''}`;
+        btn.style.borderColor = c.color;
+        btn.style.color = currentPass === c.id ? "#11111b" : c.color;
+        if (currentPass === c.id) btn.style.background = c.color;
+        btn.innerHTML = `${getModalityIcon(c.modality)} ${getCategoryName(c)}`;
+        btn.onclick = () => selectPass(c.id);
+        container.appendChild(btn);
+      });
+    }
+
+    function selectPass(catId) {
+      currentPass = catId;
+      refreshPassFocusChips();
+
+      if (catId !== "all") {
+        currentCatId = catId;
+        const catSelect = document.getElementById("catSelect");
+        if (catSelect) catSelect.value = catId;
+        selectedActions.clear();
+        updateActionOptions();
+      }
+      highlightTimelineLanes();
+    }
+
+    // ----------------------------------------------------
+    // 12. VIDEO CONTROLS & CLEAN RESOURCE MANAGEMENT
+    // ----------------------------------------------------
+    document.getElementById("videoInput").addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (file) {
+        // Revoke previous blob URL to free GPU/RAM
+        if (currentVideoObjectUrl) {
+          URL.revokeObjectURL(currentVideoObjectUrl);
+        }
+        videoFile = file;
+        videoId = file.name.replace(/\.[^/.]+$/, "");
+        currentVideoObjectUrl = URL.createObjectURL(file);
+        video.src = currentVideoObjectUrl;
+
+        video.onloadedmetadata = async () => {
+          fitTimelineZoom();
+          renderTimelineLanes();
+          loadDraft();
+          renderTimeline();
+
+          // 4K resolution warning
+          const w = video.videoWidth;
+          const h = video.videoHeight;
+          if (w >= 3840 || h >= 2160) {
+            const warnMsg = i18n[currentLang].warn_4k.replace("{w}", w).replace("{h}", h);
+            showToast(warnMsg, "warning", 8000);
+          }
+
+          // Memory pressure check
+          checkMemoryPressure();
+
+          // Auto-detect FPS
+          try {
+            const detected = await detectFps(video);
+            if (detected && detected > 0) {
+              nominalFps = detected;
+            }
+          } catch (err) {
+            console.warn("FPS detection error:", err);
+          }
+          updateFpsBadge(nominalFps);
+        };
+      }
+    });
+
+    function togglePlay() {
+      if (video.paused) {
+        video.play();
+      } else {
+        video.pause();
+      }
+    }
+
+    function stepSeconds(sec) {
+      video.currentTime = Math.max(0, Math.min(getSafeDuration(), video.currentTime + sec));
+    }
+
+    function stepFrame(frames) {
+      const step = 1 / nominalFps;
+      video.currentTime = Math.max(0, Math.min(getSafeDuration(), video.currentTime + frames * step));
+    }
+
+    function setSpeed(rate) {
+      video.playbackRate = rate;
+      ["075", "100", "150", "200"].forEach(id => {
+        const btn = document.getElementById("spd-" + id);
+        if (btn) btn.classList.remove("primary");
+      });
+      const key = rate === 0.75 ? "075" : (rate === 1.0 ? "100" : (rate === 1.5 ? "150" : "200"));
+      const activeBtn = document.getElementById("spd-" + key);
+      if (activeBtn) activeBtn.classList.add("primary");
+    }
+
+    function toggleMute() {
+      video.muted = !video.muted;
+      document.getElementById("muteBtn").textContent = video.muted ? "🔇" : "🔊";
+    }
+
+    function setVolume(val) {
+      video.volume = parseFloat(val);
+      if (video.volume > 0 && video.muted) {
+        video.muted = false;
+        document.getElementById("muteBtn").textContent = "🔊";
+      } else if (video.volume === 0) {
+        document.getElementById("muteBtn").textContent = "🔇";
+      }
+    }
+
+    function setStartHere() {
+      document.getElementById("startInput").value = video.currentTime.toFixed(2);
+    }
+    function setEndHere() {
+      document.getElementById("endInput").value = video.currentTime.toFixed(2);
+    }
+
+    // ----------------------------------------------------
+    // 13. EXPORT & IMPORT (CSV, JSONL, TAXONOMY)
+    // ----------------------------------------------------
+    function csvField(value) {
+      const text = String(value ?? "");
+      return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    }
+
+    function exportCSV() {
+      if (annotations.length === 0) {
+        alert(i18n[currentLang].err_empty);
+        return;
+      }
+      const header = ["video_id", "track_id", "role", "start_seconds", "end_seconds", "category", "action_label", "confidence", "notes"];
+      let csv = header.join(",") + "\n";
+      annotations.forEach(a => {
+        const actStr = (a.actions && a.actions.length > 0) ? a.actions.join(";") : (a.action || "");
+        csv += [videoId, a.track_id || 1, a.role || "lecturer", a.start, a.end, a.category, actStr, 1.0, a.note || ""].map(csvField).join(",") + "\n";
+      });
+      downloadFile(csv, `${videoId}_annotations.csv`, "text/csv");
+    }
+
+    function exportJSONL() {
+      if (annotations.length === 0) {
+        alert(i18n[currentLang].err_empty);
+        return;
+      }
+      let jsonl = "";
+      annotations.forEach((a, idx) => {
+        const acts = (a.actions && a.actions.length > 0) ? a.actions : [a.action || ""];
+        const obj = {
+          annotation_id: `ann_${videoId}_${idx + 1}`,
+          video_id: videoId,
+          track_id: a.track_id || 1,
+          role: a.role || "lecturer",
+          start_seconds: a.start,
+          end_seconds: a.end,
+          category: a.category,
+          modality: a.modality || "body",
+          actions: acts,
+          taxonomy_version: "v2.0-proposed",
+          annotator_id: "human_web_ui",
+          annotator_confidence: 1.0,
+          annotation_status: "draft",
+          review_status: "unreviewed",
+          revision: 0,
+          observability: "unknown",
+          notes: a.note || null
+        };
+        jsonl += JSON.stringify(obj) + "\n";
+      });
+      downloadFile(jsonl, `${videoId}_annotations.jsonl`, "application/json");
+    }
+
+    function parseCSV(text) {
+      const rows = [];
+      let row = [], cell = "", quoted = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (quoted) {
+          if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+          else if (ch === '"') quoted = false;
+          else cell += ch;
+        } else if (ch === '"') quoted = true;
+        else if (ch === ',') { row.push(cell); cell = ""; }
+        else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ""; }
+        else if (ch !== '\r') cell += ch;
+      }
+      if (cell.length || row.length) { row.push(cell); rows.push(row); }
+      return rows;
+    }
+
+    document.getElementById("csvInput").addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = evt => {
+        const lines = parseCSV(evt.target.result);
+        annotations = [];
+        let newCatsAdded = 0;
+
+        for (let i = 1; i < lines.length; i++) {
+          const parts = lines[i];
+          if (!parts || parts.every(v => !String(v).trim())) continue;
+          if (parts.length >= 7) {
+            const rawCat = parts[5].trim();
+            const rawAct = String(parts[6] || '').trim();
+            const actList = rawAct.split(/[;+]/).map(s => s.trim()).filter(Boolean);
+
+            if (!getCategory(rawCat)) {
+              const generatedColor = COLOR_PRESETS[categories.length % COLOR_PRESETS.length];
+              categories.push({
+                id: rawCat,
+                name_vi: rawCat,
+                name_en: rawCat,
+                modality: "custom",
+                color: generatedColor,
+                is_mutually_exclusive: false,
+                actions: actList.map(a => ({ id: a, vi: a, en: a }))
+              });
+              newCatsAdded++;
+            }
+
+            annotations.push({
+              id: "ann_" + Date.now() + "_" + i,
+              category: rawCat,
+              actions: actList.length > 0 ? actList : [rawAct],
+              start: parseFloat(parts[3]),
+              end: parseFloat(parts[4]),
+              note: parts[8] ? parts[8].replace(/"/g, '') : "",
+              track_id: parseInt(parts[1]) || 1,
+              role: parts[2] ? parts[2].trim() : "lecturer"
+            });
+          }
+        }
+
+        if (newCatsAdded > 0) {
+          saveTaxonomy();
+          populateCategoryDropdown();
+          refreshPassFocusChips();
+          renderTimelineLanes();
+        }
+
+        saveDraft();
+        renderList();
+        renderTimeline();
+        alert(i18n[currentLang].loaded_csv.replace("{count}", annotations.length));
+      };
+      reader.readAsText(file);
+    });
+
+    function exportTaxonomyJSON() {
+      const dataStr = JSON.stringify(categories, null, 2);
+      downloadFile(dataStr, "movement_multimodal_taxonomy.json", "application/json");
+    }
+
+    function importTaxonomyJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = evt => {
+        try {
+          const parsed = JSON.parse(evt.target.result);
+          if (!Array.isArray(parsed) || parsed.length === 0) {
+            alert("File JSON không hợp lệ hoặc rỗng!");
+            return;
+          }
+          categories = parsed;
+          saveTaxonomy();
+          populateCategoryDropdown();
+          refreshPassFocusChips();
+          renderTimelineLanes();
+          renderTimeline();
+          renderModalCategoryList();
+          renderModalCategoryDetail();
+          alert(i18n[currentLang].tax_imported.replace("{count}", categories.length));
+        } catch (err) {
+          alert("Lỗi khi đọc file JSON: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetTaxonomyToDefault() {
+      if (confirm(i18n[currentLang].confirm_reset_tax)) {
+        categories = JSON.parse(JSON.stringify(DEFAULT_TAXONOMY));
+        saveTaxonomy();
+        modalSelectedCatId = categories[0].id;
+        populateCategoryDropdown();
+        refreshPassFocusChips();
+        renderTimelineLanes();
+        renderTimeline();
+        renderModalCategoryList();
+        renderModalCategoryDetail();
+        alert(i18n[currentLang].tax_saved);
+      }
+    }
+
+    function downloadFile(content, fileName, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ----------------------------------------------------
+    // 14. TAXONOMY MANAGER MODAL
+    // ----------------------------------------------------
+    function openTaxonomyModal(catIdToSelect) {
+      modalSelectedCatId = catIdToSelect || currentCatId || (categories[0] ? categories[0].id : null);
+      document.getElementById("taxonomyModal").style.display = "flex";
+      renderModalCategoryList();
+      renderModalCategoryDetail();
+    }
+
+    function closeTaxonomyModal() {
+      document.getElementById("taxonomyModal").style.display = "none";
+      populateCategoryDropdown();
+      refreshPassFocusChips();
+      renderTimelineLanes();
+      renderTimeline();
+      updateActionOptions();
+    }
+
+    function renderModalCategoryList() {
+      const listEl = document.getElementById("modalCategoryList");
+      listEl.innerHTML = "";
+
+      categories.forEach(cat => {
+        const item = document.createElement("div");
+        item.className = `modal-cat-item ${cat.id === modalSelectedCatId ? 'active' : ''}`;
+        item.onclick = () => {
+          modalSelectedCatId = cat.id;
+          renderModalCategoryList();
+          renderModalCategoryDetail();
+        };
+
+        item.innerHTML = `
+          <div class="modal-cat-info">
+            <span class="modal-cat-color-dot" style="background:${cat.color}"></span>
+            <div class="modal-cat-names">
+              ${getModalityIcon(cat.modality)} ${getCategoryName(cat)}
+              <small>${cat.id} • ${cat.actions.length} actions</small>
+            </div>
+          </div>
+          <span style="font-size:11px;color:var(--text-muted);">&rarr;</span>
+        `;
+        listEl.appendChild(item);
+      });
+    }
+
+    function renderModalCategoryDetail() {
+      const pane = document.getElementById("modalCategoryDetail");
+      const cat = getCategory(modalSelectedCatId);
+
+      if (!cat) {
+        pane.innerHTML = `<div style="color:var(--text-muted);padding:20px;">Vui lòng chọn hoặc tạo hành vi mới.</div>`;
+        return;
+      }
+
+      pane.innerHTML = `
+        <div class="modal-section-box">
+          <div class="modal-section-title">
+            <span>Thông Tin Hành Vi / Track</span>
+            <button class="danger sm" onclick="deleteModalCategory('${cat.id}')">Xóa Hành Vi Này</button>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label>ID Nhóm (Mã duy nhất):</label>
+              <input type="text" id="editCatId" value="${cat.id}" disabled style="opacity:0.7;">
+            </div>
+            <div class="form-row">
+              <label>Phân lớp (Modality):</label>
+              <select id="editCatModality" onchange="updateCatProp('modality', this.value)">
+                <option value="body" ${cat.modality === 'body' ? 'selected' : ''}>🏃 Body / Movement (Chuyển động cơ thể)</option>
+                <option value="facial" ${cat.modality === 'facial' ? 'selected' : ''}>😀 Facial Expression (Khuôn mặt / Hướng nhìn)</option>
+                <option value="audio" ${cat.modality === 'audio' ? 'selected' : ''}>🎙️ Audio & Vocal (Âm thanh / Lời nói)</option>
+                <option value="custom" ${cat.modality === 'custom' ? 'selected' : ''}>✨ Tùy chỉnh (Custom Modality)</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>Tên hiển thị tiếng Việt:</label>
+              <input type="text" id="editCatNameVi" value="${cat.name_vi || ''}" onchange="updateCatProp('name_vi', this.value)">
+            </div>
+            <div class="form-row">
+              <label>Tên hiển thị tiếng Anh:</label>
+              <input type="text" id="editCatNameEn" value="${cat.name_en || ''}" onchange="updateCatProp('name_en', this.value)">
+            </div>
+            <div class="form-row">
+              <label>Chế độ nhãn:</label>
+              <select id="editCatExclusivity" onchange="updateCatProp('is_mutually_exclusive', this.value === 'true')">
+                <option value="false" ${!cat.is_mutually_exclusive ? 'selected' : ''}>Đa nhãn (Multi-label - Cho phép chọn nhiều mục cùng lúc)</option>
+                <option value="true" ${cat.is_mutually_exclusive ? 'selected' : ''}>Đơn nhãn (Mutually Exclusive - Chỉ 1 hành động duy nhất)</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>Màu sắc nhận diện (Timeline & Card):</label>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <input type="color" id="editCatColor" value="${cat.color || '#89b4fa'}" onchange="updateCatProp('color', this.value)" style="width:40px;height:28px;padding:0;background:transparent;cursor:pointer;border:none;">
+                <div class="color-presets-row">
+                  ${COLOR_PRESETS.map(p => `
+                    <div class="color-preset-dot ${cat.color === p ? 'active' : ''}" style="background:${p}" onclick="updateCatProp('color', '${p}')"></div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-section-box">
+          <div class="modal-section-title">
+            <span>Danh Sách Hành Động Cụ Thể (Specific Actions) (${cat.actions.length})</span>
+          </div>
+
+          <div style="display:flex;gap:6px;align-items:center;background:#181825;padding:8px;border-radius:6px;border:1px solid var(--border);">
+            <input type="text" id="newActionId" placeholder="Action ID (vd: nodding)" style="width:140px;padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:#252538;color:#fff;font-size:11px;">
+            <input type="text" id="newActionVi" placeholder="Tên tiếng Việt (vd: Gật đầu)" style="flex:1;padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:#252538;color:#fff;font-size:11px;">
+            <input type="text" id="newActionEn" placeholder="Tên tiếng Anh (vd: Head nod)" style="flex:1;padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:#252538;color:#fff;font-size:11px;">
+            <button class="primary sm" onclick="addActionToModalCat()">+ Thêm Hành Động</button>
+          </div>
+
+          <div style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;">
+            <table class="modal-actions-table">
+              <thead>
+                <tr>
+                  <th style="width:30px;">#</th>
+                  <th style="width:160px;">Action ID</th>
+                  <th>Tên tiếng Việt</th>
+                  <th>English Name</th>
+                  <th style="width:50px;text-align:center;">Xóa</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${cat.actions.map((act, idx) => `
+                  <tr>
+                    <td style="color:var(--text-muted);font-family:monospace;">${idx + 1}</td>
+                    <td><code style="background:#11111b;padding:2px 5px;border-radius:3px;color:var(--accent);">${act.id}</code></td>
+                    <td>${act.vi}</td>
+                    <td>${act.en}</td>
+                    <td style="text-align:center;">
+                      <button class="danger sm" onclick="deleteActionFromModalCat('${act.id}')" style="padding:1px 6px;">&times;</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function updateCatProp(prop, val) {
+      const cat = getCategory(modalSelectedCatId);
+      if (!cat) return;
+      cat[prop] = val;
+      saveTaxonomy();
+      renderModalCategoryList();
+      renderModalCategoryDetail();
+    }
+
+    function addActionToModalCat() {
+      const cat = getCategory(modalSelectedCatId);
+      if (!cat) return;
+      const idInput = document.getElementById("newActionId");
+      const viInput = document.getElementById("newActionVi");
+      const enInput = document.getElementById("newActionEn");
+
+      const actId = idInput.value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+      const vi = viInput.value.trim() || actId;
+      const en = enInput.value.trim() || actId;
+
+      if (!actId) {
+        alert("Vui lòng nhập Action ID!");
+        return;
+      }
+      if (cat.actions.some(a => a.id === actId)) {
+        alert("Action ID này đã tồn tại trong nhóm này!");
+        return;
+      }
+
+      cat.actions.push({ id: actId, vi, en });
+      saveTaxonomy();
+      renderModalCategoryList();
+      renderModalCategoryDetail();
+    }
+
+    function deleteActionFromModalCat(actId) {
+      const cat = getCategory(modalSelectedCatId);
+      if (!cat) return;
+      cat.actions = cat.actions.filter(a => a.id !== actId);
+      saveTaxonomy();
+      renderModalCategoryList();
+      renderModalCategoryDetail();
+    }
+
+    function deleteModalCategory(catId) {
+      const cat = getCategory(catId);
+      if (!cat) return;
+      const msg = i18n[currentLang].confirm_del_cat.replace("{name}", getCategoryName(cat));
+      if (!confirm(msg)) return;
+
+      categories = categories.filter(c => c.id !== catId);
+      saveTaxonomy();
+      modalSelectedCatId = categories[0] ? categories[0].id : null;
+      renderModalCategoryList();
+      renderModalCategoryDetail();
+    }
+
+    function showNewCategoryForm() {
+      const id = prompt("Nhập ID cho hành vi mới (chữ thường, gạch dưới, vd: head_movement hoặc audience_gesture):");
+      if (!id || !id.trim()) return;
+      const cleanId = id.trim().toLowerCase().replace(/[\s-]+/g, "_");
+      if (getCategory(cleanId)) {
+        alert("Hành vi ID này đã tồn tại!");
+        return;
+      }
+
+      const nameVi = prompt("Tên hiển thị tiếng Việt:", cleanId) || cleanId;
+      const nameEn = prompt("Tên hiển thị tiếng Anh:", cleanId) || cleanId;
+      const color = COLOR_PRESETS[categories.length % COLOR_PRESETS.length];
+
+      const newCat = {
+        id: cleanId,
+        name_vi: nameVi,
+        name_en: nameEn,
+        modality: "custom",
+        color: color,
+        is_mutually_exclusive: false,
+        actions: []
+      };
+
+      categories.push(newCat);
+      saveTaxonomy();
+      modalSelectedCatId = cleanId;
+      renderModalCategoryList();
+      renderModalCategoryDetail();
+    }
+
+    // ----------------------------------------------------
+    // 15. KEYBOARD SHORTCUTS
+    // ----------------------------------------------------
+    window.addEventListener("keydown", e => {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA") return;
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        stepSeconds(-1);
+      } else if (e.code === "ArrowRight") {
+        e.preventDefault();
+        stepSeconds(1);
+      } else if (e.key === "," || e.key === "<") {
+        e.preventDefault();
+        stepFrame(-1);
+      } else if (e.key === "." || e.key === ">") {
+        e.preventDefault();
+        stepFrame(1);
+      } else if (e.key === "s" || e.key === "S") {
+        setStartHere();
+      } else if (e.key === "e" || e.key === "E") {
+        setEndHere();
+      } else if (e.key === "Enter") {
+        addAnnotation();
+      } else if (e.key === "Escape") {
+        closeTaxonomyModal();
+      } else if (e.key >= "1" && e.key <= "9") {
+        const num = parseInt(e.key, 10);
+        const cat = getCategory(currentCatId);
+        if (cat && cat.actions && num <= cat.actions.length) {
+          toggleAction(cat.actions[num - 1].id);
+        }
+      }
+    });
+
+    // ----------------------------------------------------
+    // 16. LANGUAGE & BOOTSTRAP
+    // ----------------------------------------------------
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem("annotator_lang", lang);
+
+      const btnVi = document.getElementById("btn-lang-vi");
+      const btnEn = document.getElementById("btn-lang-en");
+      if (lang === "vi") {
+        btnVi.classList.add("primary");
+        btnEn.classList.remove("primary");
+      } else {
+        btnEn.classList.add("primary");
+        btnVi.classList.remove("primary");
+      }
+
+      const t = i18n[lang];
+      document.getElementById("txt-app-title").textContent = t.app_title;
+      document.getElementById("txt-manage-tax-label").textContent = t.manage_tax_label;
+      document.getElementById("txt-btn-select-video").textContent = t.select_video;
+      document.getElementById("txt-btn-export-csv").textContent = t.export_csv;
+      document.getElementById("txt-btn-export-jsonl").textContent = t.export_jsonl;
+      document.getElementById("txt-btn-load-csv").textContent = t.load_csv;
+      document.getElementById("txt-speed-label").textContent = t.speed_label;
+      document.getElementById("txt-btn-start").textContent = t.start_btn;
+      document.getElementById("txt-btn-end").textContent = t.end_btn;
+      document.getElementById("txt-pass-focus-label").textContent = t.pass_focus_label;
+      document.getElementById("txt-add-title").textContent = t.add_title;
+      document.getElementById("txt-cat-label").textContent = t.cat_label;
+      document.getElementById("txt-act-label").textContent = t.act_label;
+      document.getElementById("txt-btn-clear").textContent = t.clear_all;
+      document.getElementById("txt-start-label").textContent = t.start_label;
+      document.getElementById("txt-end-label").textContent = t.end_label;
+      document.getElementById("txt-note-label").textContent = t.note_label;
+      document.getElementById("noteInput").placeholder = t.note_placeholder;
+      document.getElementById("txt-btn-add").textContent = t.add_btn;
+      document.getElementById("txt-list-title").textContent = t.list_title;
+      document.getElementById("txt-timeline-header").textContent = t.timeline_header;
+      document.getElementById("txt-modal-tax-title").textContent = t.modal_tax_title;
+      document.getElementById("txt-modal-cat-list-title").textContent = t.modal_cat_list_title;
+      if (document.getElementById("txt-track-label")) document.getElementById("txt-track-label").textContent = t.track_label;
+      if (document.getElementById("txt-role-label")) document.getElementById("txt-role-label").textContent = t.role_label;
+      const roleSelect = document.getElementById("roleSelect");
+      if (roleSelect && roleSelect.options.length >= 3) {
+        const curRole = roleSelect.value;
+        roleSelect.options[0].text = t.role_lecturer;
+        roleSelect.options[1].text = t.role_audience;
+        roleSelect.options[2].text = t.role_unknown;
+        roleSelect.value = curRole;
+      }
+
+      refreshPassFocusChips();
+      populateCategoryDropdown();
+      updateActionOptions();
+      renderList();
+      renderTimelineLanes();
+      drawTimeRuler();
+      renderTimeline();
+    }
+
+    // Initialize application
+    setLanguage(currentLang);
+    loadDraft();
+  </script>
+</body>
+</html>

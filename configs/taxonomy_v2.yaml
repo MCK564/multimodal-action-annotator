@@ -1,0 +1,62 @@
+# Taxonomy đề xuất cho action recognition; không thay thế v1 cho đến khi được adjudicate.
+taxonomy_version: "v2.0-proposed"
+status: "proposed"
+coverage_semantics:
+  unlabeled_is_negative: false
+  negative_requires: "category coverage_status=complete"
+  interval_convention: "[start_seconds, end_seconds)"
+  exclusive_ambiguity: "ignore"
+heads:
+  locomotion:
+    type: "exclusive"
+    unknown_label: "__unknown__"
+  posture_stance:
+    type: "exclusive"
+    unknown_label: "__unknown__"
+  teaching_gesture:
+    type: "multi_label"
+  board_interaction:
+    type: "multi_label"
+  quality_flag:
+    type: "quality_gate"
+
+# Giữ nguyên ID hiện có để có thể đối chiếu ngược với dữ liệu UI v1.
+categories:
+  locomotion:
+    is_mutually_exclusive: true
+    labels: [stationary, walking, pacing, stepping_back]
+  posture_stance:
+    is_mutually_exclusive: true
+    labels:
+      - facing_front_0
+      - facing_front_left_45
+      - facing_front_right_45
+      - facing_side_left_90
+      - facing_side_right_90
+      - facing_back_left_135
+      - facing_back_right_135
+      - facing_back_180
+      - facing_students
+      - facing_board
+      - side_profile
+      - leaning_lectern
+  teaching_gesture:
+    is_mutually_exclusive: false
+    labels:
+      - pointing_screen
+      - pointing_board
+      - illustrative_gesture
+      - beat_gesture
+      - hands_at_rest
+      - holding_chalk
+      - holding_marker
+      - holding_mouse_clicker
+      - arm_swing_walking
+      - contracted_hand
+      - hand_towards_camera
+  board_interaction:
+    is_mutually_exclusive: false
+    labels: [writing_board, erasing_board, operating_laptop]
+  quality_flag:
+    is_mutually_exclusive: true
+    labels: [scorable, unscorable, target_lost]

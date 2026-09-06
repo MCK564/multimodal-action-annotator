@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Environment / OS
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+
+# Temporary test / run artifacts
+*.mp4
+*.avi
+*.mov
+!data/

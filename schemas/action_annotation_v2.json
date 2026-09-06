@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://task3-movement.local/schemas/action_annotation_v2.json",
+  "title": "Task3ActionAnnotationV2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "annotation_id", "video_id", "track_id", "role", "start_seconds",
+    "end_seconds", "category", "actions", "taxonomy_version",
+    "annotator_id", "annotator_confidence", "annotation_status",
+    "review_status"
+  ],
+  "properties": {
+    "annotation_id": {"type": "string", "minLength": 1},
+    "video_id": {"type": "string", "minLength": 1},
+    "track_id": {"type": "integer", "minimum": 0},
+    "role": {"type": "string", "enum": ["lecturer", "audience", "unknown"]},
+    "start_seconds": {"type": "number", "minimum": 0},
+    "end_seconds": {"type": "number", "exclusiveMinimum": 0},
+    "category": {"type": "string", "minLength": 1},
+    "actions": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "taxonomy_version": {"type": "string", "minLength": 1},
+    "annotator_id": {"type": "string", "minLength": 1},
+    "annotator_confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "observability": {
+      "type": "string",
+      "enum": ["clear", "partial_occlusion", "heavy_occlusion", "unknown"]
+    },
+    "annotation_status": {
+      "type": "string",
+      "enum": ["draft", "reviewed", "adjudicated"]
+    },
+    "review_status": {
+      "type": "string",
+      "enum": ["unreviewed", "accepted", "needs_adjudication"]
+    },
+    "revision": {"type": "integer", "minimum": 0},
+    "source_file_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+    "pose_run_id": {"type": ["string", "null"]},
+    "notes": {"type": ["string", "null"]}
+  },
+  "allOf": [
+    {"if": {"required": ["start_seconds", "end_seconds"]},
+     "then": {"properties": {"end_seconds": {"exclusiveMinimum": 0}}}}
+  ]
+}
