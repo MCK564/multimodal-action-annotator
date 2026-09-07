@@ -14,12 +14,19 @@ import yaml
 from jsonschema import validate
 
 
+OBSERVABILITY_VALUES = {"clear", "partial_occlusion", "heavy_occlusion", "unknown"}
+OCCLUSION_REGION_VALUES = {
+    "lower_body", "upper_body", "torso", "face", "behind_person", "off_frame", "unknown"
+}
+EVIDENCE_MODE_VALUES = {"full_pose", "partial_pose", "bbox_motion", "scene_context", "unknown"}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Convert CSV action annotations to schema-validated JSONL")
-    parser.add_argument("--csv", type=Path, default=Path("data/annotations/action_annotation_template.csv"), help="Input CSV file")
-    parser.add_argument("--taxonomy", type=Path, default=Path("configs/action_recognition/taxonomy_v2.yaml"), help="Taxonomy YAML")
+    parser.add_argument("--csv", type=Path, default=Path("data/action_annotation_template.csv"), help="Input CSV file")
+    parser.add_argument("--taxonomy", type=Path, default=Path("configs/taxonomy_v2.yaml"), help="Taxonomy YAML")
     parser.add_argument("--schema", type=Path, default=Path("schemas/action_annotation_v2.json"), help="Annotation JSON Schema")
-    parser.add_argument("--output", type=Path, default=Path("data/action_recognition/annotations_v2.jsonl"), help="Output JSONL")
+    parser.add_argument("--output", type=Path, default=Path("data/annotations_v2.jsonl"), help="Output JSONL")
     parser.add_argument("--annotator-id", default="human_annotator_1", help="Annotator provenance (default: legacy value)")
     parser.add_argument("--allow-unknown", action="store_true", help="Only for legacy migration; do not fail unknown/wrong-category labels")
     args = parser.parse_args(argv)
@@ -59,7 +66,14 @@ def main(argv: list[str] | None = None) -> int:
             category = row.get("category", "").strip()
             raw_action_str = row["action_label"].strip()
             conf = float(row.get("confidence", 1.0))
-            notes = row.get("notes", "").strip()
+            notes = str(row.get("notes") or "").strip()
+            observability = str(row.get("observability") or "unknown").strip() or "unknown"
+            raw_regions = str(row.get("occlusion_regions") or "").strip()
+            occlusion_regions = sorted({
+                region.strip() for region in raw_regions.replace("+", ";").replace(",", ";").split(";")
+                if region.strip()
+            })
+            evidence_mode = str(row.get("evidence_mode") or "unknown").strip() or "unknown"
 
             if end_s <= start_s:
                 print(f"[Error Row {row_idx}] Invalid interval: start {start_s} >= end {end_s}")
@@ -79,6 +93,13 @@ def main(argv: list[str] | None = None) -> int:
                     row_errors.append(f"unknown action label: {act!r}")
                 elif act not in labels_by_category.get(category, set()):
                     row_errors.append(f"action label {act!r} does not belong to category {category!r}")
+            if observability not in OBSERVABILITY_VALUES:
+                row_errors.append(f"invalid observability: {observability!r}")
+            invalid_regions = sorted(set(occlusion_regions) - OCCLUSION_REGION_VALUES)
+            if invalid_regions:
+                row_errors.append(f"invalid occlusion_regions: {invalid_regions!r}")
+            if evidence_mode not in EVIDENCE_MODE_VALUES:
+                row_errors.append(f"invalid evidence_mode: {evidence_mode!r}")
             if row_errors:
                 validation_errors.extend(f"Row {row_idx}: {message}" for message in row_errors)
                 if not args.allow_unknown:
@@ -96,7 +117,9 @@ def main(argv: list[str] | None = None) -> int:
                 "taxonomy_version": str(tax.get("taxonomy_version", "unknown")),
                 "annotator_id": row.get("annotator_id", "").strip() or args.annotator_id,
                 "annotator_confidence": round(conf, 2),
-                "observability": row.get("observability", "unknown").strip() or "unknown",
+                "observability": observability,
+                "occlusion_regions": occlusion_regions,
+                "evidence_mode": evidence_mode,
                 "annotation_status": row.get("annotation_status", "draft").strip() or "draft",
                 "review_status": row.get("review_status", "unreviewed").strip() or "unreviewed",
                 "revision": int(row.get("revision") or 0),

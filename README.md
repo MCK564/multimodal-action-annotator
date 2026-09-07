@@ -18,7 +18,7 @@
 - **Lưu trữ dung lượng lớn với IndexedDB**: Thay thế giới hạn 5MB của `localStorage` bằng IndexedDB, cho phép lưu hàng chục nghìn nhãn của các video dài mà không bao giờ mất dữ liệu.
 - **Cơ chế quản lý bộ nhớ an toàn**: Cảnh báo video 4K để tránh tràn RAM, tự động thu hồi Blob URL khi nạp video mới hoặc tải lại trang.
 - **Hỗ trợ Song ngữ (i18n)**: Chuyển đổi linh hoạt giữa Tiếng Việt và Tiếng Anh chỉ với một cú nhấp.
-- **Chuẩn hóa Export/Import**: Xuất định dạng CSV 9 cột và JSONL tương thích hoàn toàn với JSON Schema kiểm duyệt học máy.
+- **Chuẩn hóa Export/Import**: Xuất CSV 12 cột và JSONL tương thích với JSON Schema; metadata quan sát/che khuất được giữ nguyên khi chuyển đổi.
 
 ---
 
@@ -56,7 +56,7 @@ Store: drafts)]
 
     subgraph OUT["4. Export, Conversion & AI Dataset Pipeline"]
         ADD --> EX_CSV[exportCSV
-9 Standard Columns]
+12 Standard Columns]
         ADD --> EX_JSONL[exportJSONL
 Schema-compliant JSON Objects]
         EX_CSV --> CONV[convert_csv_to_annotations.py
@@ -193,6 +193,8 @@ python scripts/convert_csv_to_annotations.py \
   "review_status": "unreviewed",
   "revision": 0,
   "observability": "unknown",
+  "occlusion_regions": [],
+  "evidence_mode": "unknown",
   "notes": "Di chuyển về phía bảng đen"
 }
 ```
@@ -202,3 +204,9 @@ python scripts/convert_csv_to_annotations.py \
 ## 7. Giấy Phép & Đóng Góp
 
 Dự án phát triển phục vụ công tác nghiên cứu hành vi giảng viên và phân tích video thị giác máy tính. Mọi đóng góp hoặc báo cáo lỗi xin vui lòng mở Issue hoặc Pull Request trên repository.
+
+## Bổ sung: ngồi và che khuất thân (v2.1)
+
+- Người ngồi: chọn `posture_stance` → `seated`. Nếu không có dịch chuyển, chọn thêm `locomotion` → `seated_stationary`; không dùng `stationary` vì nhãn đó mang nghĩa đang đứng.
+- Bàn/ghế hoặc người phía trước che thân: chọn `partial_occlusion`/`heavy_occlusion` và các vùng `lower_body`, `torso`, `behind_person` trong form.
+- `evidence_mode` ghi nguồn bằng chứng (`full_pose`, `partial_pose`, `bbox_motion`, `scene_context`). Metadata này được giữ nguyên trong CSV 12 cột và JSONL, giúp phân biệt “ngồi yên” với “đứng yên nhưng bị mất keypoint”.

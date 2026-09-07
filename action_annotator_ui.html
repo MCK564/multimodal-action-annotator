@@ -292,6 +292,35 @@
     .form-row select:focus, .form-row input:focus {
       border-color: var(--accent);
     }
+    .observation-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .occlusion-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 8px;
+      padding: 5px 7px;
+      background: #181825;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+    .occlusion-options label {
+      display: inline-flex;
+      justify-content: flex-start;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .occlusion-options input { accent-color: var(--accent); }
+    .observation-help {
+      color: var(--text-muted);
+      font-size: 10px;
+      line-height: 1.35;
+    }
     .category-select-wrapper {
       display: flex;
       gap: 6px;
@@ -960,6 +989,37 @@
           </div>
         </div>
 
+        <!-- Observability is separate from the action label: a seated person or a
+             person hidden behind a desk must not be mislabeled as stationary. -->
+        <div class="form-row">
+          <label id="txt-observation-label">Quan sát cơ thể / che khuất:</label>
+          <div class="observation-grid">
+            <select id="observabilitySelect" aria-label="Observability">
+              <option value="clear">Rõ toàn thân</option>
+              <option value="partial_occlusion">Khuất một phần</option>
+              <option value="heavy_occlusion">Khuất nhiều</option>
+              <option value="unknown" selected>Chưa rõ</option>
+            </select>
+            <select id="evidenceModeSelect" aria-label="Evidence mode">
+              <option value="full_pose">Đủ pose</option>
+              <option value="partial_pose">Pose một phần</option>
+              <option value="bbox_motion">Chuyển động bbox</option>
+              <option value="scene_context">Ngữ cảnh cảnh quay</option>
+              <option value="unknown" selected>Chưa rõ bằng chứng</option>
+            </select>
+          </div>
+          <div class="occlusion-options" id="occlusionRegionOptions">
+            <label><input type="checkbox" name="occlusionRegion" value="lower_body"> Thân dưới</label>
+            <label><input type="checkbox" name="occlusionRegion" value="upper_body"> Thân trên</label>
+            <label><input type="checkbox" name="occlusionRegion" value="torso"> Torso</label>
+            <label><input type="checkbox" name="occlusionRegion" value="face"> Mặt</label>
+            <label><input type="checkbox" name="occlusionRegion" value="behind_person"> Sau người khác</label>
+            <label><input type="checkbox" name="occlusionRegion" value="off_frame"> Ngoài khung</label>
+            <label><input type="checkbox" name="occlusionRegion" value="unknown"> Không rõ vùng</label>
+          </div>
+          <div class="observation-help" id="txt-observation-help">Người ngồi: chọn posture_stance → seated; nếu bàn/ghế che thân, chọn Khuất một phần/nhiều và vùng bị khuất.</div>
+        </div>
+
         <button class="primary" id="txt-btn-add" onclick="addAnnotation()" style="justify-content:center;padding:7px 12px;">
           + Thêm Hành Vi (Enter)
         </button>
@@ -1052,9 +1112,10 @@
         name_en: "Locomotion (Body Displacement)",
         modality: "body",
         color: "#f38ba8",
-        is_mutually_exclusive: false,
+        is_mutually_exclusive: true,
         actions: [
           { id: "stationary", vi: "Đứng yên", en: "Standing in place" },
+          { id: "seated_stationary", vi: "Ngồi yên", en: "Seated / stationary" },
           { id: "walking", vi: "Đi lại", en: "Deliberate walking" },
           { id: "pacing", vi: "Đi qua đi lại", en: "Repetitive pacing" },
           { id: "stepping_back", vi: "Lùi bước quan sát", en: "Stepping back to observe" }
@@ -1096,12 +1157,13 @@
       },
       {
         id: "posture_stance",
-        name_vi: "Posture Stance (Tư thế đứng)",
-        name_en: "Posture Stance (Facing/Stance)",
+        name_vi: "Posture Stance (Tư thế & hướng)",
+        name_en: "Posture Stance (Posture / Facing)",
         modality: "body",
         color: "#cba6f7",
         is_mutually_exclusive: false,
         actions: [
+          { id: "seated", vi: "Đang ngồi", en: "Seated posture" },
           { id: "facing_front_0", vi: "Chính diện camera (0°)", en: "Facing front (0° / camera)" },
           { id: "facing_front_left_45", vi: "Chéo trước trái (45°)", en: "Three-quarter front-left (45°)" },
           { id: "facing_front_right_45", vi: "Chéo trước phải (-45°)", en: "Three-quarter front-right (-45°)" },
@@ -1164,18 +1226,36 @@
     ];
 
     let categories = [];
+    // Merge new labels into an existing browser taxonomy without deleting
+    // custom categories/actions. This upgrades old localStorage drafts safely.
+    function mergeTaxonomyDefaults(saved) {
+      const merged = Array.isArray(saved) ? saved : [];
+      DEFAULT_TAXONOMY.forEach(def => {
+        const existing = merged.find(c => c.id === def.id);
+        if (!existing) {
+          merged.push(JSON.parse(JSON.stringify(def)));
+          return;
+        }
+        if (!Array.isArray(existing.actions)) existing.actions = [];
+        (def.actions || []).forEach(action => {
+          if (!existing.actions.some(a => a.id === action.id)) {
+            existing.actions.push(JSON.parse(JSON.stringify(action)));
+          }
+        });
+        if (existing.id === "locomotion") existing.is_mutually_exclusive = true;
+        if (existing.id === "posture_stance") existing.is_mutually_exclusive = false;
+      });
+      return merged;
+    }
+
     function loadTaxonomy() {
       try {
         const saved = localStorage.getItem("annotator_custom_taxonomy");
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            categories = parsed;
-            categories.forEach(c => {
-              if (c.id === "locomotion" || c.id === "posture_stance") {
-                c.is_mutually_exclusive = false;
-              }
-            });
+            categories = mergeTaxonomyDefaults(parsed);
+            saveTaxonomy();
             return;
           }
         }
@@ -1202,6 +1282,8 @@
 
     const i18n = {
       vi: {
+        observation_label: "Quan sát cơ thể / che khuất:",
+        observation_help: "Người ngồi: chọn posture_stance → seated; nếu bàn/ghế che thân, chọn mức khuất và vùng bị khuất.",
         app_title: "Task 3 Multimodal Action Annotator (Đánh Nhãn Đa Tầng)",
         manage_tax_label: "Quản Lý Hành Vi",
         select_video: "📁 Chọn Video (.MP4)",
@@ -1254,6 +1336,8 @@
         memory_pressure: "⚠️ Bộ nhớ JavaScript đang chịu tải cao (> 70% heap). Vui lòng lưu file và tải lại trang nếu thấy giật lag."
       },
       en: {
+        observation_label: "Body visibility / occlusion:",
+        observation_help: "For a seated person choose posture_stance → seated; mark the occluded body regions when a desk/person blocks the pose.",
         app_title: "Task 3 Multimodal Action Annotator (Visual Multi-track)",
         manage_tax_label: "Manage Taxonomy",
         select_video: "📁 Choose Video (.MP4)",
@@ -1352,6 +1436,47 @@
         default: return "✨";
       }
     }
+
+    const OBSERVABILITY_LABELS = {
+      clear: "Rõ",
+      partial_occlusion: "Khuất một phần",
+      heavy_occlusion: "Khuất nhiều",
+      unknown: "Chưa rõ"
+    };
+    const EVIDENCE_MODE_LABELS = {
+      full_pose: "Đủ pose",
+      partial_pose: "Pose một phần",
+      bbox_motion: "Chuyển động bbox",
+      scene_context: "Ngữ cảnh",
+      unknown: "Chưa rõ bằng chứng"
+    };
+
+    function getCheckedOcclusionRegions() {
+      return Array.from(document.querySelectorAll('input[name="occlusionRegion"]:checked'))
+        .map(input => input.value);
+    }
+
+    function setAnnotationMetadataInForm(annotation) {
+      const obs = document.getElementById("observabilitySelect");
+      const evidence = document.getElementById("evidenceModeSelect");
+      if (obs) obs.value = annotation.observability || "unknown";
+      if (evidence) evidence.value = annotation.evidence_mode || "unknown";
+      const selected = new Set(Array.isArray(annotation.occlusion_regions) ? annotation.occlusion_regions : []);
+      document.querySelectorAll('input[name="occlusionRegion"]').forEach(input => {
+        input.checked = selected.has(input.value);
+      });
+    }
+
+    function normalizeAnnotationMetadata(annotation) {
+      const normalized = annotation || {};
+      normalized.observability = OBSERVABILITY_LABELS[normalized.observability]
+        ? normalized.observability : "unknown";
+      normalized.evidence_mode = EVIDENCE_MODE_LABELS[normalized.evidence_mode]
+        ? normalized.evidence_mode : "unknown";
+      normalized.occlusion_regions = Array.isArray(normalized.occlusion_regions)
+        ? Array.from(new Set(normalized.occlusion_regions.filter(Boolean))) : [];
+      return normalized;
+    }
     function formatTime(t) {
       if (!isFinite(t) || isNaN(t) || t < 0) t = 0;
       const m = Math.floor(t / 60);
@@ -1433,7 +1558,7 @@
       try {
         const data = await idbLoad(key);
         if (data && data.annotations && data.annotations.length > 0) {
-          annotations = data.annotations;
+          annotations = data.annotations.map(normalizeAnnotationMetadata);
           renderList();
           renderTimeline();
           updateAutoSaveBadge();
@@ -1447,7 +1572,7 @@
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            annotations = parsed;
+            annotations = parsed.map(normalizeAnnotationMetadata);
             renderList();
             renderTimeline();
             updateAutoSaveBadge();
@@ -1955,7 +2080,9 @@
 
         const actionDisplay = (ann.actions && ann.actions.length > 0) ? ann.actions.join(" + ") : (ann.action || "");
         block.textContent = actionDisplay;
-        block.title = `${actionDisplay} (${ann.start.toFixed(2)}s - ${ann.end.toFixed(2)}s)`;
+        const regionHint = Array.isArray(ann.occlusion_regions) && ann.occlusion_regions.length
+          ? `; occlusion: ${ann.occlusion_regions.join("+")}` : "";
+        block.title = `${actionDisplay} (${ann.start.toFixed(2)}s - ${ann.end.toFixed(2)}s; ${ann.observability || "unknown"}${regionHint})`;
 
         // Handles
         const hl = document.createElement("div");
@@ -1970,6 +2097,7 @@
           video.currentTime = ann.start;
           if (document.getElementById("trackIdInput")) document.getElementById("trackIdInput").value = ann.track_id || 1;
           if (document.getElementById("roleSelect")) document.getElementById("roleSelect").value = ann.role || "lecturer";
+          setAnnotationMetadataInForm(ann);
         };
 
         // Pointerdown events dispatch to global drag manager (0 memory leak!)
@@ -2035,11 +2163,17 @@
           video.currentTime = ann.start;
           if (document.getElementById("trackIdInput")) document.getElementById("trackIdInput").value = ann.track_id || 1;
           if (document.getElementById("roleSelect")) document.getElementById("roleSelect").value = ann.role || "lecturer";
+          setAnnotationMetadataInForm(ann);
         };
 
         const actionDisplay = (ann.actions && ann.actions.length > 0) ? ann.actions.join(" + ") : (ann.action || "");
         const catName = cat ? getCategoryName(cat) : ann.category;
         const modalityIcon = getModalityIcon(cat ? cat.modality : 'body');
+        const observability = ann.observability || "unknown";
+        const observationLabel = OBSERVABILITY_LABELS[observability] || observability;
+        const regions = Array.isArray(ann.occlusion_regions) ? ann.occlusion_regions : [];
+        const regionLabel = regions.length ? ` · khuất: ${regions.join("+")}` : "";
+        const evidenceLabel = EVIDENCE_MODE_LABELS[ann.evidence_mode || "unknown"] || "Chưa rõ bằng chứng";
 
         card.innerHTML = `
           <div class="ann-info">
@@ -2053,6 +2187,7 @@
             <div class="ann-time-text">
               ${ann.start.toFixed(2)}s &rarr; ${ann.end.toFixed(2)}s (${(ann.end - ann.start).toFixed(1)}s)
             </div>
+            <div class="ann-note-text">Quan sát: ${observationLabel}${regionLabel} · Bằng chứng: ${evidenceLabel}</div>
             ${ann.note ? `<div class="ann-note-text">${ann.note}</div>` : ''}
           </div>
           <div class="ann-del" onclick="event.stopPropagation(); deleteAnnotation('${ann.id}')" title="Xóa">&times;</div>
@@ -2070,6 +2205,15 @@
       const note = document.getElementById("noteInput").value.trim();
       const trackId = parseInt(document.getElementById("trackIdInput").value) || 1;
       const role = document.getElementById("roleSelect").value || "lecturer";
+      let observability = document.getElementById("observabilitySelect").value || "unknown";
+      const evidenceMode = document.getElementById("evidenceModeSelect").value || "unknown";
+      const occlusionRegions = getCheckedOcclusionRegions();
+
+      // A selected occlusion region is stronger evidence than the default
+      // "unknown" value; make the metadata internally consistent for exports.
+      if (occlusionRegions.length > 0 && observability === "clear") {
+        observability = "partial_occlusion";
+      }
 
       if (isNaN(start) || isNaN(end) || end <= start) {
         alert(i18n[currentLang].err_time);
@@ -2097,7 +2241,7 @@
       const actionsList = Array.from(selectedActions);
       const cat = getCategory(catId);
 
-      annotations.push({
+      annotations.push(normalizeAnnotationMetadata({
         id: "ann_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
         category: catId,
         modality: cat ? cat.modality : "body",
@@ -2106,8 +2250,11 @@
         end: Math.round(end * 100) / 100,
         note: note,
         track_id: trackId,
-        role: role
-      });
+        role: role,
+        observability: observability,
+        occlusion_regions: occlusionRegions,
+        evidence_mode: evidenceMode
+      }));
 
       selectedActions.clear();
       updateChipsAndPreview();
@@ -2445,11 +2592,14 @@
         alert(i18n[currentLang].err_empty);
         return;
       }
-      const header = ["video_id", "track_id", "role", "start_seconds", "end_seconds", "category", "action_label", "confidence", "notes"];
+      const header = ["video_id", "track_id", "role", "start_seconds", "end_seconds", "category", "action_label", "confidence", "observability", "occlusion_regions", "evidence_mode", "notes"];
       let csv = header.join(",") + "\n";
       annotations.forEach(a => {
         const actStr = (a.actions && a.actions.length > 0) ? a.actions.join(";") : (a.action || "");
-        csv += [videoId, a.track_id || 1, a.role || "lecturer", a.start, a.end, a.category, actStr, 1.0, a.note || ""].map(csvField).join(",") + "\n";
+        const regions = Array.isArray(a.occlusion_regions) ? a.occlusion_regions.join(";") : "";
+        csv += [videoId, a.track_id || 1, a.role || "lecturer", a.start, a.end, a.category, actStr, 1.0,
+          a.observability || "unknown", regions, a.evidence_mode || "unknown", a.note || ""]
+          .map(csvField).join(",") + "\n";
       });
       downloadFile(csv, `${videoId}_annotations.csv`, "text/csv");
     }
@@ -2478,7 +2628,9 @@
           annotation_status: "draft",
           review_status: "unreviewed",
           revision: 0,
-          observability: "unknown",
+          observability: a.observability || "unknown",
+          occlusion_regions: Array.isArray(a.occlusion_regions) ? a.occlusion_regions : [],
+          evidence_mode: a.evidence_mode || "unknown",
           notes: a.note || null
         };
         jsonl += JSON.stringify(obj) + "\n";
@@ -2512,13 +2664,19 @@
         const lines = parseCSV(evt.target.result);
         annotations = [];
         let newCatsAdded = 0;
+        const header = (lines[0] || []).map(value => String(value || "").trim().replace(/^\uFEFF/, ""));
+        const columnIndex = name => header.indexOf(name);
+        const cell = (parts, name, fallback = "") => {
+          const idx = columnIndex(name);
+          return idx >= 0 && idx < parts.length ? String(parts[idx] || "").trim() : fallback;
+        };
 
         for (let i = 1; i < lines.length; i++) {
           const parts = lines[i];
           if (!parts || parts.every(v => !String(v).trim())) continue;
           if (parts.length >= 7) {
-            const rawCat = parts[5].trim();
-            const rawAct = String(parts[6] || '').trim();
+            const rawCat = cell(parts, "category", parts[5]).trim();
+            const rawAct = cell(parts, "action_label", parts[6]);
             const actList = rawAct.split(/[;+]/).map(s => s.trim()).filter(Boolean);
 
             if (!getCategory(rawCat)) {
@@ -2535,16 +2693,22 @@
               newCatsAdded++;
             }
 
-            annotations.push({
+            const roleValue = cell(parts, "role", "lecturer");
+            const rawRegions = cell(parts, "occlusion_regions", "");
+            const regions = rawRegions.split(/[;+]/).map(s => s.trim()).filter(Boolean);
+            annotations.push(normalizeAnnotationMetadata({
               id: "ann_" + Date.now() + "_" + i,
               category: rawCat,
               actions: actList.length > 0 ? actList : [rawAct],
-              start: parseFloat(parts[3]),
-              end: parseFloat(parts[4]),
-              note: parts[8] ? parts[8].replace(/"/g, '') : "",
-              track_id: parseInt(parts[1]) || 1,
-              role: parts[2] ? parts[2].trim() : "lecturer"
-            });
+              start: parseFloat(cell(parts, "start_seconds", parts[3])),
+              end: parseFloat(cell(parts, "end_seconds", parts[4])),
+              note: cell(parts, "notes", parts[8] || "").replace(/"/g, ""),
+              track_id: parseInt(cell(parts, "track_id", parts[1]), 10) || 1,
+              role: ["lecturer", "audience", "unknown"].includes(roleValue) ? roleValue : "unknown",
+              observability: cell(parts, "observability", "unknown") || "unknown",
+              occlusion_regions: regions,
+              evidence_mode: cell(parts, "evidence_mode", "unknown") || "unknown"
+            }));
           }
         }
 
@@ -2579,7 +2743,7 @@
             alert("File JSON không hợp lệ hoặc rỗng!");
             return;
           }
-          categories = parsed;
+          categories = mergeTaxonomyDefaults(parsed);
           saveTaxonomy();
           populateCategoryDropdown();
           refreshPassFocusChips();
@@ -2934,6 +3098,8 @@
       document.getElementById("txt-modal-cat-list-title").textContent = t.modal_cat_list_title;
       if (document.getElementById("txt-track-label")) document.getElementById("txt-track-label").textContent = t.track_label;
       if (document.getElementById("txt-role-label")) document.getElementById("txt-role-label").textContent = t.role_label;
+      if (document.getElementById("txt-observation-label")) document.getElementById("txt-observation-label").textContent = t.observation_label;
+      if (document.getElementById("txt-observation-help")) document.getElementById("txt-observation-help").textContent = t.observation_help;
       const roleSelect = document.getElementById("roleSelect");
       if (roleSelect && roleSelect.options.length >= 3) {
         const curRole = roleSelect.value;

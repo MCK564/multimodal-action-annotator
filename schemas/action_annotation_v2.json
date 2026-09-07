@@ -29,6 +29,18 @@
       "type": "string",
       "enum": ["clear", "partial_occlusion", "heavy_occlusion", "unknown"]
     },
+    "occlusion_regions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": ["lower_body", "upper_body", "torso", "face", "behind_person", "off_frame", "unknown"]
+      }
+    },
+    "evidence_mode": {
+      "type": "string",
+      "enum": ["full_pose", "partial_pose", "bbox_motion", "scene_context", "unknown"]
+    },
     "annotation_status": {
       "type": "string",
       "enum": ["draft", "reviewed", "adjudicated"]

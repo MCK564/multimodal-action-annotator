@@ -11,7 +11,8 @@ heads:
     type: "exclusive"
     unknown_label: "__unknown__"
   posture_stance:
-    type: "exclusive"
+    # Có thể gắn đồng thời seated + hướng mặt (facing_*); đây là hai trục khác nhau.
+    type: "multi_label"
     unknown_label: "__unknown__"
   teaching_gesture:
     type: "multi_label"
@@ -24,10 +25,11 @@ heads:
 categories:
   locomotion:
     is_mutually_exclusive: true
-    labels: [stationary, walking, pacing, stepping_back]
+    labels: [stationary, seated_stationary, walking, pacing, stepping_back]
   posture_stance:
-    is_mutually_exclusive: true
+    is_mutually_exclusive: false
     labels:
+      - seated
       - facing_front_0
       - facing_front_left_45
       - facing_front_right_45
@@ -60,3 +62,10 @@ categories:
   quality_flag:
     is_mutually_exclusive: true
     labels: [scorable, unscorable, target_lost]
+
+# Metadata bắt buộc khi hình người bị che khuất/không quan sát đủ thân.
+# Các trường này không phải action label, nên không làm phình taxonomy hành vi.
+observation:
+  observability: [clear, partial_occlusion, heavy_occlusion, unknown]
+  occlusion_regions: [lower_body, upper_body, torso, face, behind_person, off_frame, unknown]
+  evidence_mode: [full_pose, partial_pose, bbox_motion, scene_context, unknown]
