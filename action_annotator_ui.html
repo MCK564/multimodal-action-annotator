@@ -1052,7 +1052,7 @@
         name_en: "Locomotion (Body Displacement)",
         modality: "body",
         color: "#f38ba8",
-        is_mutually_exclusive: true,
+        is_mutually_exclusive: false,
         actions: [
           { id: "stationary", vi: "Đứng yên", en: "Standing in place" },
           { id: "walking", vi: "Đi lại", en: "Deliberate walking" },
@@ -1100,7 +1100,7 @@
         name_en: "Posture Stance (Facing/Stance)",
         modality: "body",
         color: "#cba6f7",
-        is_mutually_exclusive: true,
+        is_mutually_exclusive: false,
         actions: [
           { id: "facing_front_0", vi: "Chính diện camera (0°)", en: "Facing front (0° / camera)" },
           { id: "facing_front_left_45", vi: "Chéo trước trái (45°)", en: "Three-quarter front-left (45°)" },
@@ -1171,6 +1171,11 @@
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
             categories = parsed;
+            categories.forEach(c => {
+              if (c.id === "locomotion" || c.id === "posture_stance") {
+                c.is_mutually_exclusive = false;
+              }
+            });
             return;
           }
         }
@@ -2179,28 +2184,17 @@
     }
 
     function updateExclusivityHint() {
-      const cat = getCategory(currentCatId);
       const hintEl = document.getElementById("exclusivityHint");
-      if (!cat || !hintEl) return;
-      hintEl.textContent = cat.is_mutually_exclusive
-        ? i18n[currentLang].single_select_hint
-        : i18n[currentLang].multi_select_hint;
-      hintEl.style.color = cat.is_mutually_exclusive ? "var(--warning)" : "var(--accent)";
+      if (!hintEl) return;
+      hintEl.textContent = i18n[currentLang].multi_select_hint;
+      hintEl.style.color = "var(--accent)";
     }
 
     function toggleAction(actionId) {
-      const cat = getCategory(currentCatId);
-      if (!cat) return;
-
-      if (cat.is_mutually_exclusive) {
-        if (selectedActions.has(actionId)) selectedActions.clear();
-        else {
-          selectedActions.clear();
-          selectedActions.add(actionId);
-        }
+      if (selectedActions.has(actionId)) {
+        selectedActions.delete(actionId);
       } else {
-        if (selectedActions.has(actionId)) selectedActions.delete(actionId);
-        else selectedActions.add(actionId);
+        selectedActions.add(actionId);
       }
       updateChipsAndPreview();
     }
